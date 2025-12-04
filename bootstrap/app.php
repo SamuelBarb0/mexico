@@ -11,7 +11,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'tenant.set' => \App\Http\Middleware\EnsureTenantIsSet::class,
+            'tenant.status' => \App\Http\Middleware\CheckTenantStatus::class,
+            'subscription.limits' => \App\Http\Middleware\CheckSubscriptionLimits::class,
+        ]);
+
+        // Exclude Stripe webhook from CSRF verification
+        $middleware->validateCsrfTokens(except: [
+            'stripe/webhook',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
