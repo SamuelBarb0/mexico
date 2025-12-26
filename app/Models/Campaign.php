@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Campaign extends Model
@@ -14,11 +15,13 @@ class Campaign extends Model
     protected $fillable = [
         'tenant_id',
         'waba_account_id',
+        'message_template_id',
         'name',
         'description',
         'type',
         'status',
         'message_template',
+        'template_variables_mapping',
         'target_audience',
         'scheduled_at',
         'started_at',
@@ -28,10 +31,12 @@ class Campaign extends Model
         'delivered_count',
         'read_count',
         'failed_count',
+        'response_count',
     ];
 
     protected $casts = [
         'message_template' => 'array',
+        'template_variables_mapping' => 'array',
         'target_audience' => 'array',
         'scheduled_at' => 'datetime',
         'started_at' => 'datetime',
@@ -41,11 +46,22 @@ class Campaign extends Model
         'delivered_count' => 'integer',
         'read_count' => 'integer',
         'failed_count' => 'integer',
+        'response_count' => 'integer',
     ];
 
     public function wabaAccount(): BelongsTo
     {
         return $this->belongsTo(WabaAccount::class);
+    }
+
+    public function messageTemplate(): BelongsTo
+    {
+        return $this->belongsTo(MessageTemplate::class);
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(CampaignMessage::class);
     }
 
     public function scopeDraft($query)

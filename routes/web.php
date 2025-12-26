@@ -12,6 +12,7 @@ use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
+use App\Http\Controllers\MessageTemplateController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -36,10 +37,20 @@ Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
 
     // Módulo de Campañas
     Route::resource('campaigns', CampaignController::class);
+    Route::post('/campaigns/{campaign}/prepare', [CampaignController::class, 'prepare'])->name('campaigns.prepare');
     Route::post('/campaigns/{campaign}/execute', [CampaignController::class, 'execute'])->name('campaigns.execute');
+    Route::get('/campaigns/{campaign}/metrics', [CampaignController::class, 'metrics'])->name('campaigns.metrics');
 
     // Módulo de WABA Accounts
     Route::resource('waba-accounts', WabaAccountController::class);
+
+    // Módulo de Plantillas de Mensajes
+    Route::get('/templates/create', [MessageTemplateController::class, 'create'])->name('templates.create');
+    Route::get('/templates/{template}/edit', [MessageTemplateController::class, 'edit'])->name('templates.edit');
+    Route::post('/templates/{template}/submit', [MessageTemplateController::class, 'submit'])->name('templates.submit');
+    Route::post('/templates/{template}/sync', [MessageTemplateController::class, 'sync'])->name('templates.sync');
+    Route::post('/templates/sync-all', [MessageTemplateController::class, 'syncAll'])->name('templates.sync-all');
+    Route::resource('templates', MessageTemplateController::class)->except(['create', 'edit']);
 
     // Subscription Management
     Route::prefix('subscriptions')->name('subscriptions.')->group(function () {

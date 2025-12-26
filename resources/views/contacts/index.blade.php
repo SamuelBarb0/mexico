@@ -28,7 +28,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-success-100">
         @if($contacts->isEmpty())
             <div class="text-center py-16 px-6">
                 <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-6">

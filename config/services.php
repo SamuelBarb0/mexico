@@ -41,4 +41,12 @@ return [
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
+    'meta' => [
+        'app_id' => env('META_APP_ID'),
+        'access_token' => env('META_ACCESS_TOKEN'),
+        'graph_api_url' => env('META_GRAPH_API_URL', 'https://graph.facebook.com'),
+        'api_version' => env('META_API_VERSION', 'v21.0'),
+        'webhook_verify_token' => env('META_WEBHOOK_VERIFY_TOKEN'),
+    ],
+
 ];

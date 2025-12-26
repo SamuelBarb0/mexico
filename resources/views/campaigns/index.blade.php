@@ -51,11 +51,10 @@
                     <thead class="bg-gradient-to-r from-purple-50 to-violet-50">
                         <tr>
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Nombre</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tipo</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">WABA Account</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Plantilla</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Estado</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Programada</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Mensajes</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Destinatarios</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Métricas</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
@@ -72,25 +71,18 @@
                                         @if($campaign->description)
                                             <div class="text-xs text-gray-500">{{ Str::limit($campaign->description, 50) }}</div>
                                         @endif
+                                        <div class="text-xs text-purple-600 mt-1">
+                                            {{ ucfirst($campaign->type) }}
+                                        </div>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-3 py-1 inline-flex items-center text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
-                                        <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
-                                    </svg>
-                                    {{ ucfirst($campaign->type) }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if($campaign->wabaAccount)
-                                    <a href="{{ route('waba-accounts.show', $campaign->wabaAccount) }}" class="text-blue-600 hover:text-blue-800 font-semibold">
-                                        {{ $campaign->wabaAccount->name }}
-                                    </a>
+                                @if($campaign->messageTemplate)
+                                    <div class="text-sm font-medium text-gray-900">{{ $campaign->messageTemplate->name }}</div>
+                                    <div class="text-xs text-gray-500">{{ ucfirst($campaign->messageTemplate->category) }}</div>
                                 @else
-                                    <span class="text-gray-400 text-sm">Sin WABA</span>
+                                    <span class="text-gray-400 text-sm">Sin plantilla</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -139,37 +131,59 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-700">{{ $campaign->scheduled_at ? $campaign->scheduled_at->format('d/m/Y H:i') : '-' }}</div>
+                                <div class="text-sm font-semibold text-gray-900">{{ number_format($campaign->total_recipients) }}</div>
+                                @if($campaign->scheduled_at)
+                                    <div class="text-xs text-gray-500">{{ $campaign->scheduled_at->format('d/m/Y H:i') }}</div>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-700">Enviados: {{ $campaign->messages_sent }}</div>
-                                <div class="text-xs text-gray-500">Fallidos: {{ $campaign->messages_failed }}</div>
+                                <div class="space-y-1">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="text-gray-600">Enviados:</span>
+                                        <span class="font-semibold text-blue-600">{{ number_format($campaign->sent_count) }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="text-gray-600">Entregados:</span>
+                                        <span class="font-semibold text-green-600">{{ number_format($campaign->delivered_count) }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="text-gray-600">Leídos:</span>
+                                        <span class="font-semibold text-purple-600">{{ number_format($campaign->read_count) }}</span>
+                                    </div>
+                                    @if($campaign->failed_count > 0)
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="text-gray-600">Fallidos:</span>
+                                        <span class="font-semibold text-red-600">{{ number_format($campaign->failed_count) }}</span>
+                                    </div>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div class="flex items-center space-x-3">
+                                <div class="flex flex-col space-y-2">
                                     <a href="{{ route('campaigns.show', $campaign) }}" class="text-purple-600 hover:text-purple-800 font-semibold transition-colors">
-                                        👁️ Ver
+                                        Ver detalles
                                     </a>
-                                    @if($campaign->status === 'draft' || $campaign->status === 'scheduled')
-                                        <a href="{{ route('campaigns.edit', $campaign) }}" class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors">
-                                            ✏️ Editar
+                                    @if($campaign->total_recipients > 0)
+                                        <a href="{{ route('campaigns.metrics', $campaign) }}" class="text-blue-600 hover:text-blue-800 font-semibold transition-colors">
+                                            Métricas
                                         </a>
                                     @endif
-                                    @if($campaign->status === 'scheduled' || $campaign->status === 'draft')
-                                        <form action="{{ route('campaigns.execute', $campaign) }}" method="POST" class="inline" onsubmit="return confirm('¿Ejecutar esta campaña?')">
+                                    @if($campaign->status === 'draft' && $campaign->total_recipients == 0)
+                                        <form action="{{ route('campaigns.prepare', $campaign) }}" method="POST" class="inline">
                                             @csrf
-                                            <button type="submit" class="text-green-600 hover:text-green-800 font-semibold transition-colors">
-                                                ▶️ Ejecutar
+                                            <button type="submit" class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors">
+                                                Preparar
                                             </button>
                                         </form>
                                     @endif
-                                    <form action="{{ route('campaigns.destroy', $campaign) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de eliminar esta campaña?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800 font-semibold transition-colors">
-                                            🗑️ Eliminar
-                                        </button>
-                                    </form>
+                                    @if(in_array($campaign->status, ['draft', 'scheduled', 'paused']) && $campaign->total_recipients > 0)
+                                        <form action="{{ route('campaigns.execute', $campaign) }}" method="POST" class="inline">
+                                            @csrf
+                                            <button type="submit" class="text-green-600 hover:text-green-800 font-semibold transition-colors">
+                                                Ejecutar
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
