@@ -13,6 +13,8 @@ use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\MessageTemplateController;
+use App\Http\Controllers\ContactImportController;
+use App\Http\Controllers\InboxController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -34,6 +36,15 @@ Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
 
     // Módulo de Contactos
     Route::resource('contacts', ContactController::class);
+    Route::get('/contacts-import', [ContactImportController::class, 'index'])->name('contacts.import');
+    Route::post('/contacts-import/upload', [ContactImportController::class, 'upload'])->name('contacts.import.upload');
+    Route::post('/contacts-import/process', [ContactImportController::class, 'process'])->name('contacts.import.process');
+    Route::post('/contacts-import/cancel', [ContactImportController::class, 'cancel'])->name('contacts.import.cancel');
+
+    // Módulo de Inbox/Conversaciones
+    Route::get('/inbox', [InboxController::class, 'index'])->name('inbox.index');
+    Route::get('/inbox/{contact}', [InboxController::class, 'show'])->name('inbox.show');
+    Route::get('/inbox/stats', [InboxController::class, 'stats'])->name('inbox.stats');
 
     // Módulo de Campañas
     Route::resource('campaigns', CampaignController::class);

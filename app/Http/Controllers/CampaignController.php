@@ -52,7 +52,6 @@ class CampaignController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'required|in:broadcast,drip,triggered',
-            'target_audience' => 'required|array',
             'target_audience.type' => 'required|in:all,lists,tags,custom',
             'target_audience.lists' => 'nullable|array',
             'target_audience.tags' => 'nullable|array',
@@ -60,12 +59,29 @@ class CampaignController extends Controller
             'scheduled_at' => 'nullable|date|after:now',
         ]);
 
+        // Build target_audience array
+        $targetAudience = [
+            'type' => $request->input('target_audience.type', 'all'),
+            'lists' => $request->input('target_audience.lists', []),
+            'tags' => $request->input('target_audience.tags', []),
+        ];
+
         // Determine initial status
-        $status = $request->has('scheduled_at') ? 'scheduled' : 'draft';
-        $validated['status'] = $status;
+        $status = $request->filled('scheduled_at') ? 'scheduled' : 'draft';
 
         // Create campaign
-        $campaign = Campaign::create($validated);
+        $campaign = Campaign::create([
+            'tenant_id' => auth()->user()->tenant_id,
+            'waba_account_id' => $validated['waba_account_id'],
+            'message_template_id' => $validated['message_template_id'],
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'type' => $validated['type'],
+            'status' => $status,
+            'target_audience' => $targetAudience,
+            'template_variables_mapping' => $validated['template_variables_mapping'] ?? [],
+            'scheduled_at' => $validated['scheduled_at'] ?? null,
+        ]);
 
         // If immediate execution is requested
         if ($request->has('execute_now') && $request->execute_now == '1') {

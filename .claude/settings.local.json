@@ -8,7 +8,8 @@
       "Bash(node_modules/.bin/tailwindcss init -p)",
       "Bash(npm run build:*)",
       "Bash(c:/xampp/php/php.exe artisan:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

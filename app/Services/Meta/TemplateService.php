@@ -223,34 +223,29 @@ class TemplateService
             $created = 0;
 
             foreach ($result['data'] as $metaTemplate) {
-                $localTemplate = MessageTemplate::where('tenant_id', $tenantId)
-                    ->where('meta_template_id', $metaTemplate['id'])
-                    ->first();
-
-                if ($localTemplate) {
-                    // Update existing
-                    $localTemplate->update([
-                        'meta_status' => $metaTemplate['status'],
-                        'status' => $this->mapMetaStatusToLocal($metaTemplate['status']),
-                        'components' => $metaTemplate['components'],
-                        'quality_score' => $metaTemplate['quality_score']['score'] ?? 'UNKNOWN',
-                    ]);
-                    $synced++;
-                } else {
-                    // Create new
-                    MessageTemplate::create([
+                // Use updateOrCreate to avoid duplicates
+                $template = MessageTemplate::updateOrCreate(
+                    [
                         'tenant_id' => $tenantId,
-                        'waba_account_id' => $wabaAccount->id,
-                        'meta_template_id' => $metaTemplate['id'],
                         'name' => $metaTemplate['name'],
                         'language' => $metaTemplate['language'],
+                    ],
+                    [
+                        'waba_account_id' => $wabaAccount->id,
+                        'meta_template_id' => $metaTemplate['id'],
                         'category' => $metaTemplate['category'],
                         'status' => $this->mapMetaStatusToLocal($metaTemplate['status']),
                         'meta_status' => $metaTemplate['status'],
                         'components' => $metaTemplate['components'],
                         'quality_score' => $metaTemplate['quality_score']['score'] ?? 'UNKNOWN',
-                    ]);
+                        'rejection_reason' => $metaTemplate['rejected_reason'] ?? null,
+                    ]
+                );
+
+                if ($template->wasRecentlyCreated) {
                     $created++;
+                } else {
+                    $synced++;
                 }
             }
 
@@ -269,7 +264,7 @@ class TemplateService
 
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => 'Error al sincronizar plantillas con Meta',
             ];
         }
     }

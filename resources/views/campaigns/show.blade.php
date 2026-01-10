@@ -41,6 +41,30 @@
                 <a href="{{ route('campaigns.index') }}" class="bg-white text-purple-600 px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
                     Volver
                 </a>
+
+                @if(in_array($campaign->status, ['draft', 'scheduled']) && $campaign->total_recipients == 0)
+                    <form action="{{ route('campaigns.prepare', $campaign) }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="bg-yellow-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:bg-yellow-600">
+                            <i class="bi bi-gear"></i> Preparar Campaña
+                        </button>
+                    </form>
+                @endif
+
+                @if($campaign->total_recipients > 0 && in_array($campaign->status, ['draft', 'scheduled', 'paused']))
+                    @php
+                        $pendingCount = $campaign->messages()->where('status', 'PENDING')->count();
+                    @endphp
+                    @if($pendingCount > 0)
+                        <form action="{{ route('campaigns.execute', $campaign) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de ejecutar esta campaña y enviar {{ $pendingCount }} mensajes?');">
+                            @csrf
+                            <button type="submit" class="bg-green-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:bg-green-600">
+                                <i class="bi bi-play-fill"></i> Ejecutar Campaña ({{ $pendingCount }} mensajes)
+                            </button>
+                        </form>
+                    @endif
+                @endif
+
                 @if($campaign->total_recipients > 0)
                     <a href="{{ route('campaigns.metrics', $campaign) }}" class="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
                         Ver Métricas
