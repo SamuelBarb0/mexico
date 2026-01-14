@@ -138,15 +138,13 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Tipo de Audiencia</label>
-                            <select x-model="targetType" class="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500">
+                            <select name="target_audience[type]" x-model="targetType" class="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500">
                                 <option value="all">Todos los contactos</option>
                                 <option value="lists">Por listas</option>
                                 <option value="tags">Por etiquetas</option>
                                 <option value="custom">Filtros personalizados</option>
                             </select>
                         </div>
-
-                        <input type="hidden" name="target_audience[type]" :value="targetType">
 
                         <div x-show="targetType === 'all'" class="p-4 bg-blue-50 rounded-lg">
                             <p class="text-sm text-blue-700">Se enviarán mensajes a todos los contactos activos.</p>

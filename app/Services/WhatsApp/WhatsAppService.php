@@ -230,6 +230,74 @@ class WhatsAppService
     }
 
     /**
+     * Send a text message via WhatsApp Business API
+     */
+    public function sendTextMessage(
+        WabaAccount $wabaAccount,
+        string $phoneNumber,
+        string $messageText
+    ): array {
+        $phoneNumberId = $wabaAccount->phone_number_id;
+        $accessToken = $wabaAccount->access_token;
+
+        $url = "https://graph.facebook.com/{$this->apiVersion}/{$phoneNumberId}/messages";
+
+        $payload = [
+            'messaging_product' => 'whatsapp',
+            'to' => $this->formatPhoneNumber($phoneNumber),
+            'type' => 'text',
+            'text' => [
+                'preview_url' => false,
+                'body' => $messageText,
+            ],
+        ];
+
+        try {
+            $response = Http::withToken($accessToken)
+                ->post($url, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                Log::info('WhatsApp text message sent successfully', [
+                    'phone_number' => $phoneNumber,
+                    'message_id' => $data['messages'][0]['id'] ?? null,
+                ]);
+
+                return [
+                    'success' => true,
+                    'message_id' => $data['messages'][0]['id'] ?? null,
+                    'data' => $data,
+                ];
+            }
+
+            $error = $response->json();
+            Log::error('WhatsApp text message send failed', [
+                'phone_number' => $phoneNumber,
+                'error' => $error,
+            ]);
+
+            return [
+                'success' => false,
+                'error_message' => $error['error']['message'] ?? 'Unknown error',
+                'error_code' => $error['error']['code'] ?? null,
+                'error' => $error,
+            ];
+        } catch (\Exception $e) {
+            Log::error('WhatsApp API exception', [
+                'phone_number' => $phoneNumber,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error_message' => $e->getMessage(),
+                'error_code' => 'EXCEPTION',
+            ];
+        }
+    }
+
+    /**
      * Get message delivery status from WhatsApp
      */
     public function getMessageStatus(WabaAccount $wabaAccount, string $messageId): ?array

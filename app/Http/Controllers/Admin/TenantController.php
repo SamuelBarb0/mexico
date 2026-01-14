@@ -3,63 +3,188 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TenantController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of tenants with stats
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $query = Tenant::query();
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Search by name or email
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('billing_email', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%");
+            });
+        }
+
+        $tenants = $query->with(['users', 'subscriptions' => function($q) {
+                $q->whereIn('status', ['trial', 'active'])->latest()->limit(1);
+            }, 'subscriptions.plan'])
+            ->withCount(['users', 'contacts', 'campaigns', 'wabaAccounts'])
+            ->latest()
+            ->paginate(20);
+
+        // Overall statistics
+        $stats = [
+            'total' => Tenant::count(),
+            'active' => Tenant::where('status', 'active')->count(),
+            'suspended' => Tenant::where('status', 'suspended')->count(),
+            'inactive' => Tenant::where('status', 'inactive')->count(),
+            'total_users' => DB::table('users')->count(),
+            'total_contacts' => DB::table('contacts')->count(),
+            'total_campaigns' => DB::table('campaigns')->count(),
+        ];
+
+        return view('admin.tenants.index', compact('tenants', 'stats'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Show the form for creating a new tenant
      */
     public function create()
     {
-        //
+        return view('admin.tenants.create');
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created tenant
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:tenants,slug',
+            'billing_email' => 'required|email|max:255',
+            'billing_name' => 'nullable|string|max:255',
+            'status' => 'required|in:active,suspended,inactive',
+        ]);
+
+        $tenant = Tenant::create([
+            'name' => $request->name,
+            'slug' => $request->slug ?: Str::slug($request->name),
+            'billing_email' => $request->billing_email,
+            'billing_name' => $request->billing_name,
+            'status' => $request->status,
+        ]);
+
+        return redirect()->route('admin.tenants.show', $tenant)
+            ->with('success', 'Tenant creado exitosamente');
     }
 
     /**
-     * Display the specified resource.
+     * Display tenant details with comprehensive statistics
      */
-    public function show(string $id)
+    public function show(Tenant $tenant)
     {
-        //
+        $tenant->load([
+            'users',
+            'contacts',
+            'campaigns',
+            'wabaAccounts',
+            'subscriptions.plan'
+        ]);
+
+        // Detailed statistics
+        $stats = [
+            'users' => [
+                'total' => $tenant->users()->count(),
+                'active' => $tenant->users()->whereNull('deleted_at')->count(),
+            ],
+            'contacts' => [
+                'total' => $tenant->contacts()->count(),
+                'with_messages' => $tenant->contacts()->whereHas('messages')->count(),
+            ],
+            'campaigns' => [
+                'total' => $tenant->campaigns()->count(),
+                'completed' => $tenant->campaigns()->where('status', 'completed')->count(),
+                'failed' => $tenant->campaigns()->where('status', 'failed')->count(),
+            ],
+            'messages' => [
+                'total' => DB::table('messages')->where('tenant_id', $tenant->id)->count(),
+                'sent' => DB::table('messages')->where('tenant_id', $tenant->id)->where('direction', 'outbound')->count(),
+                'received' => DB::table('messages')->where('tenant_id', $tenant->id)->where('direction', 'inbound')->count(),
+            ],
+            'waba_accounts' => $tenant->wabaAccounts()->count(),
+        ];
+
+        // Recent activity
+        $recentCampaigns = $tenant->campaigns()->latest()->limit(5)->get();
+        $recentUsers = $tenant->users()->latest()->limit(5)->get();
+
+        return view('admin.tenants.show', compact('tenant', 'stats', 'recentCampaigns', 'recentUsers'));
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show the form for editing a tenant
      */
-    public function edit(string $id)
+    public function edit(Tenant $tenant)
     {
-        //
+        return view('admin.tenants.edit', compact('tenant'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update tenant information
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Tenant $tenant)
     {
-        //
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:tenants,slug,' . $tenant->id,
+            'billing_email' => 'required|email|max:255',
+            'billing_name' => 'nullable|string|max:255',
+            'status' => 'required|in:active,suspended,inactive',
+        ]);
+
+        $tenant->update([
+            'name' => $request->name,
+            'slug' => $request->slug ?: Str::slug($request->name),
+            'billing_email' => $request->billing_email,
+            'billing_name' => $request->billing_name,
+            'status' => $request->status,
+        ]);
+
+        return redirect()->route('admin.tenants.show', $tenant)
+            ->with('success', 'Tenant actualizado exitosamente');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Toggle tenant status (activate/suspend)
      */
-    public function destroy(string $id)
+    public function toggleStatus(Tenant $tenant)
     {
-        //
+        $newStatus = $tenant->status === 'active' ? 'suspended' : 'active';
+        $tenant->update(['status' => $newStatus]);
+
+        $message = $newStatus === 'active'
+            ? 'Tenant activado exitosamente'
+            : 'Tenant suspendido exitosamente';
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Soft delete a tenant
+     */
+    public function destroy(Tenant $tenant)
+    {
+        $tenant->delete();
+
+        return redirect()->route('admin.tenants.index')
+            ->with('success', 'Tenant eliminado exitosamente');
     }
 }

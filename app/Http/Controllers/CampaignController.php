@@ -46,51 +46,93 @@ class CampaignController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'waba_account_id' => 'required|exists:waba_accounts,id',
-            'message_template_id' => 'required|exists:message_templates,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'type' => 'required|in:broadcast,drip,triggered',
-            'target_audience.type' => 'required|in:all,lists,tags,custom',
-            'target_audience.lists' => 'nullable|array',
-            'target_audience.tags' => 'nullable|array',
-            'template_variables_mapping' => 'nullable|array',
-            'scheduled_at' => 'nullable|date|after:now',
-        ]);
-
-        // Build target_audience array
-        $targetAudience = [
-            'type' => $request->input('target_audience.type', 'all'),
-            'lists' => $request->input('target_audience.lists', []),
-            'tags' => $request->input('target_audience.tags', []),
-        ];
-
-        // Determine initial status
-        $status = $request->filled('scheduled_at') ? 'scheduled' : 'draft';
-
-        // Create campaign
-        $campaign = Campaign::create([
+        \Log::info('=== INICIO: Creación de campaña ===');
+        \Log::info('Request completo:', $request->all());
+        \Log::info('Usuario autenticado:', [
+            'id' => auth()->id(),
             'tenant_id' => auth()->user()->tenant_id,
-            'waba_account_id' => $validated['waba_account_id'],
-            'message_template_id' => $validated['message_template_id'],
-            'name' => $validated['name'],
-            'description' => $validated['description'] ?? null,
-            'type' => $validated['type'],
-            'status' => $status,
-            'target_audience' => $targetAudience,
-            'template_variables_mapping' => $validated['template_variables_mapping'] ?? [],
-            'scheduled_at' => $validated['scheduled_at'] ?? null,
         ]);
 
-        // If immediate execution is requested
-        if ($request->has('execute_now') && $request->execute_now == '1') {
-            return redirect()->route('campaigns.prepare', $campaign)
-                ->with('success', 'Campaña creada. Preparando envío...');
-        }
+        try {
+            \Log::info('Iniciando validación...');
+            $validated = $request->validate([
+                'waba_account_id' => 'required|exists:waba_accounts,id',
+                'message_template_id' => 'required|exists:message_templates,id',
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'type' => 'required|in:broadcast,drip,triggered',
+                'target_audience.type' => 'required|in:all,lists,tags,custom',
+                'target_audience.lists' => 'nullable|array',
+                'target_audience.tags' => 'nullable|array',
+                'template_variables_mapping' => 'nullable|array',
+                'scheduled_at' => 'nullable|date|after:now',
+            ]);
+            \Log::info('Validación exitosa:', $validated);
 
-        return redirect()->route('campaigns.show', $campaign)
-            ->with('success', 'Campaña creada exitosamente');
+            // Build target_audience array
+            $targetAudience = [
+                'type' => $request->input('target_audience.type', 'all'),
+                'lists' => $request->input('target_audience.lists', []),
+                'tags' => $request->input('target_audience.tags', []),
+            ];
+            \Log::info('Target audience construido:', $targetAudience);
+
+            // Determine initial status
+            $status = $request->filled('scheduled_at') ? 'scheduled' : 'draft';
+            \Log::info('Status determinado:', ['status' => $status]);
+
+            // Prepare campaign data
+            $campaignData = [
+                'tenant_id' => auth()->user()->tenant_id,
+                'waba_account_id' => $validated['waba_account_id'],
+                'message_template_id' => $validated['message_template_id'],
+                'name' => $validated['name'],
+                'description' => $validated['description'] ?? null,
+                'type' => $validated['type'],
+                'status' => $status,
+                'target_audience' => $targetAudience,
+                'template_variables_mapping' => $validated['template_variables_mapping'] ?? [],
+                'scheduled_at' => $validated['scheduled_at'] ?? null,
+            ];
+            \Log::info('Datos de campaña preparados:', $campaignData);
+
+            // Create campaign
+            \Log::info('Intentando crear campaña en la base de datos...');
+            $campaign = Campaign::create($campaignData);
+            \Log::info('Campaña creada exitosamente:', [
+                'id' => $campaign->id,
+                'name' => $campaign->name,
+                'status' => $campaign->status,
+            ]);
+
+            // If immediate execution is requested
+            if ($request->has('execute_now') && $request->execute_now == '1') {
+                \Log::info('Ejecución inmediata solicitada, redirigiendo a prepare');
+                return redirect()->route('campaigns.prepare', $campaign)
+                    ->with('success', 'Campaña creada. Preparando envío...');
+            }
+
+            \Log::info('=== FIN: Campaña creada exitosamente, redirigiendo a show ===');
+            return redirect()->route('campaigns.show', $campaign)
+                ->with('success', 'Campaña creada exitosamente');
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Error de validación en creación de campaña:', [
+                'errors' => $e->errors(),
+                'message' => $e->getMessage(),
+            ]);
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Error al crear campaña:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Error al crear la campaña: ' . $e->getMessage());
+        }
     }
 
     public function show(Campaign $campaign)
@@ -167,39 +209,75 @@ class CampaignController extends Controller
      */
     public function prepare(Campaign $campaign)
     {
+        \Log::info('=== INICIO: Preparación de campaña ===', [
+            'campaign_id' => $campaign->id,
+            'campaign_name' => $campaign->name,
+            'campaign_status' => $campaign->status,
+        ]);
+
         // Validate campaign can be prepared
         if (!in_array($campaign->status, ['draft', 'scheduled'])) {
+            \Log::warning('Campaña no puede ser preparada - estado inválido', [
+                'campaign_id' => $campaign->id,
+                'status' => $campaign->status,
+            ]);
             return back()->withErrors(['error' => 'Esta campaña no puede ser preparada en su estado actual']);
         }
 
         // Validate template exists and is approved
         if (!$campaign->messageTemplate || $campaign->messageTemplate->status !== 'APPROVED') {
+            \Log::error('Template no aprobado o no existe', [
+                'campaign_id' => $campaign->id,
+                'template_id' => $campaign->message_template_id,
+                'template_status' => $campaign->messageTemplate?->status,
+            ]);
             return back()->withErrors(['error' => 'La plantilla de mensaje no está aprobada']);
         }
 
+        \Log::info('Obteniendo contactos objetivo...');
         // Get target contacts based on audience criteria
         $contacts = $this->getTargetContacts($campaign);
+        \Log::info('Contactos obtenidos:', [
+            'total' => $contacts->count(),
+            'target_audience' => $campaign->target_audience,
+        ]);
 
         if ($contacts->isEmpty()) {
+            \Log::warning('No se encontraron contactos para la campaña');
             return back()->withErrors(['error' => 'No se encontraron contactos para esta campaña']);
         }
 
         // Create campaign messages for each contact
         $messagesCreated = 0;
+        \Log::info('Creando mensajes de campaña...');
         foreach ($contacts as $contact) {
-            $messageBody = $this->renderMessageBody($campaign->messageTemplate, $contact, $campaign->template_variables_mapping);
+            try {
+                $messageBody = $this->renderMessageBody($campaign->messageTemplate, $contact, $campaign->template_variables_mapping);
 
-            CampaignMessage::create([
-                'campaign_id' => $campaign->id,
-                'contact_id' => $contact->id,
-                'phone_number' => $contact->phone,
-                'message_body' => $messageBody,
-                'status' => 'PENDING',
-                'template_variables' => $this->prepareContactVariables($contact, $campaign->template_variables_mapping),
-            ]);
+                CampaignMessage::create([
+                    'campaign_id' => $campaign->id,
+                    'contact_id' => $contact->id,
+                    'phone_number' => $contact->phone,
+                    'message_body' => $messageBody,
+                    'status' => 'PENDING',
+                    'template_variables' => $this->prepareContactVariables($contact, $campaign->template_variables_mapping),
+                ]);
 
-            $messagesCreated++;
+                $messagesCreated++;
+
+                if ($messagesCreated % 10 == 0) {
+                    \Log::info("Mensajes creados: {$messagesCreated}");
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error creando mensaje para contacto', [
+                    'contact_id' => $contact->id,
+                    'contact_phone' => $contact->phone,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
+
+        \Log::info('Total de mensajes creados:', ['count' => $messagesCreated]);
 
         // Update campaign total recipients
         $campaign->update([
@@ -215,23 +293,87 @@ class CampaignController extends Controller
      */
     public function execute(Campaign $campaign)
     {
+        \Log::info('=== INICIO: Ejecución de campaña ===', [
+            'campaign_id' => $campaign->id,
+            'campaign_name' => $campaign->name,
+            'campaign_status' => $campaign->status,
+        ]);
+
         // Validate campaign can be executed
         if (!in_array($campaign->status, ['draft', 'scheduled', 'paused'])) {
+            \Log::warning('Campaña no puede ser ejecutada - estado inválido', [
+                'campaign_id' => $campaign->id,
+                'status' => $campaign->status,
+            ]);
             return back()->withErrors(['error' => 'Esta campaña no puede ser ejecutada en su estado actual']);
         }
 
         // Check if messages have been prepared
         $pendingMessages = $campaign->messages()->where('status', 'PENDING')->count();
+        \Log::info('Mensajes pendientes encontrados:', ['count' => $pendingMessages]);
 
         if ($pendingMessages === 0) {
+            \Log::warning('No hay mensajes pendientes para enviar');
             return back()->withErrors(['error' => 'No hay mensajes pendientes. Prepara la campaña primero.']);
         }
 
-        // Dispatch job to send messages
+        // Dispatch job to queue
+        \Log::info('Despachando job SendCampaignMessagesJob', [
+            'campaign_id' => $campaign->id,
+            'batch_size' => 50,
+        ]);
+
         SendCampaignMessagesJob::dispatch($campaign, 50);
 
+        // Process the queue in background
+        \Log::info('Iniciando procesamiento de queue en segundo plano...');
+
+        // Check if request is AJAX
+        if ($request->expectsJson() || $request->wantsJson()) {
+            // Start queue processing in background
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                // Windows - ejecutar en segundo plano
+                pclose(popen("start /B php artisan queue:work --once --tries=3 2>&1", "r"));
+            } else {
+                // Linux/Unix
+                exec("php artisan queue:work --once --tries=3 > /dev/null 2>&1 &");
+            }
+
+            \Log::info('=== FIN: Job despachado, procesamiento iniciado ===');
+            return response()->json(['success' => true, 'message' => 'Campaña en ejecución']);
+        }
+
+        // Si no es AJAX (fallback), procesar sincrónicamente
+        try {
+            \Artisan::call('queue:work', [
+                '--once' => true,
+                '--tries' => 3,
+            ]);
+        } catch (\Exception $e) {
+            \Log::warning('Error procesando queue:', ['error' => $e->getMessage()]);
+        }
+
+        \Log::info('=== FIN: Job despachado y procesado ===');
         return redirect()->route('campaigns.show', $campaign)
-            ->with('success', 'Campaña en ejecución. Los mensajes se enviarán en segundo plano.');
+            ->with('success', 'Campaña ejecutada exitosamente.');
+    }
+
+    /**
+     * Get campaign execution progress
+     */
+    public function progress(Campaign $campaign)
+    {
+        $total = $campaign->total_recipients;
+        $pending = $campaign->messages()->where('status', 'PENDING')->count();
+        $sent = $campaign->messages()->whereIn('status', ['SENT', 'DELIVERED', 'READ'])->count();
+        $failed = $campaign->messages()->where('status', 'FAILED')->count();
+
+        return response()->json([
+            'total' => $total,
+            'pending' => $pending,
+            'sent' => $sent,
+            'failed' => $failed,
+        ]);
     }
 
     /**

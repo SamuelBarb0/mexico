@@ -154,13 +154,21 @@ class WebhookService
                 return;
             }
 
+            // Obtener nombre del contacto desde el webhook
+            $contactProfile = $value['contacts'][0] ?? null;
+            $contactName = $contactProfile['profile']['name'] ?? null;
+
+            // Limpiar el número de teléfono (remover el +)
+            $cleanPhone = ltrim($from, '+');
+
             // Buscar o crear el contacto
             $contact = Contact::firstOrCreate(
                 [
                     'tenant_id' => $wabaAccount->tenant_id,
-                    'phone_number' => $from,
+                    'phone' => $cleanPhone,
                 ],
                 [
+                    'name' => $contactName,
                     'whatsapp_verified' => true,
                     'last_message_at' => now(),
                 ]

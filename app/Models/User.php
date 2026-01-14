@@ -56,4 +56,28 @@ class User extends Authenticatable
     {
         $this->update(['last_login_at' => now()]);
     }
+
+    /**
+     * Check if user is a platform administrator
+     */
+    public function isPlatformAdmin(): bool
+    {
+        return $this->user_type === 'platform_admin';
+    }
+
+    /**
+     * Check if user is a tenant administrator
+     */
+    public function isTenantAdmin(): bool
+    {
+        return $this->user_type === 'tenant_admin';
+    }
+
+    /**
+     * Check if user is a regular tenant user
+     */
+    public function isTenantUser(): bool
+    {
+        return $this->user_type === 'tenant_user';
+    }
 }

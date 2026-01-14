@@ -266,15 +266,18 @@ class StripeService
     public function attachPaymentMethod(Tenant $tenant, string $paymentMethodId): PaymentMethod
     {
         try {
-            // Check if payment method already exists
+            $customer = $this->createOrGetCustomer($tenant);
+
+            // Retrieve payment method details from Stripe
+            $stripePaymentMethod = StripePaymentMethod::retrieve($paymentMethodId);
+
+            // Check if payment method ID already exists
             $existingPaymentMethod = PaymentMethod::where('tenant_id', $tenant->id)
                 ->where('stripe_payment_method_id', $paymentMethodId)
                 ->first();
 
             if ($existingPaymentMethod) {
                 // Payment method already exists, just set it as default if needed
-                $customer = $this->createOrGetCustomer($tenant);
-
                 Customer::update($customer->id, [
                     'invoice_settings' => [
                         'default_payment_method' => $paymentMethodId,
@@ -291,11 +294,27 @@ class StripeService
                 return $existingPaymentMethod;
             }
 
-            $customer = $this->createOrGetCustomer($tenant);
+            // Check if the same card already exists (by card details, not just Stripe ID)
+            // This prevents adding the same physical card multiple times
+            if ($stripePaymentMethod->type === 'card' && isset($stripePaymentMethod->card)) {
+                $duplicateCard = PaymentMethod::where('tenant_id', $tenant->id)
+                    ->where('type', 'card')
+                    ->where('brand', $stripePaymentMethod->card->brand)
+                    ->where('last4', $stripePaymentMethod->card->last4)
+                    ->where('exp_month', $stripePaymentMethod->card->exp_month)
+                    ->where('exp_year', $stripePaymentMethod->card->exp_year)
+                    ->where('is_active', true)
+                    ->first();
+
+                if ($duplicateCard) {
+                    throw new Exception(
+                        "Esta tarjeta {$stripePaymentMethod->card->brand} ****{$stripePaymentMethod->card->last4} " .
+                        "ya está registrada en su cuenta."
+                    );
+                }
+            }
 
             // Attach payment method to customer in Stripe
-            $stripePaymentMethod = StripePaymentMethod::retrieve($paymentMethodId);
-
             // Only attach if not already attached
             if (!$stripePaymentMethod->customer || $stripePaymentMethod->customer !== $customer->id) {
                 $stripePaymentMethod->attach(['customer' => $customer->id]);

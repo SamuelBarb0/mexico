@@ -23,11 +23,19 @@ class ContactImportController extends Controller
      */
     public function upload(Request $request)
     {
+        \Log::info('=== UPLOAD CSV - Iniciando ===', [
+            'user_id' => auth()->id(),
+            'tenant_id' => auth()->user()->tenant_id,
+        ]);
+
         $validator = Validator::make($request->all(), [
             'csv_file' => 'required|file|mimes:csv,txt|max:10240', // Max 10MB
         ]);
 
         if ($validator->fails()) {
+            \Log::warning('CSV upload validation failed', [
+                'errors' => $validator->errors()->toArray(),
+            ]);
             return back()
                 ->withErrors($validator)
                 ->with('error', 'Por favor selecciona un archivo CSV válido (máximo 10MB).');
@@ -36,11 +44,22 @@ class ContactImportController extends Controller
         try {
             $file = $request->file('csv_file');
 
+            \Log::info('CSV file uploaded', [
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+            ]);
+
             // Generate unique filename
             $filename = 'imports/' . Str::uuid() . '.csv';
 
             // Store the file
             $path = $file->storeAs('', $filename, 'local');
+
+            \Log::info('CSV file stored', [
+                'path' => $path,
+                'full_path' => storage_path('app/' . $path),
+            ]);
 
             // Read first few rows for preview
             $csvContent = Storage::disk('local')->get($path);
@@ -48,6 +67,11 @@ class ContactImportController extends Controller
 
             // Get header
             $header = array_shift($rows);
+
+            \Log::info('CSV parsed', [
+                'header' => $header,
+                'total_rows' => count($rows),
+            ]);
 
             // Get first 5 rows for preview
             $preview = array_slice($rows, 0, 5);
@@ -68,6 +92,10 @@ class ContactImportController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Error uploading CSV', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->with('error', 'Error al procesar el archivo: ' . $e->getMessage());
         }
     }
@@ -77,12 +105,21 @@ class ContactImportController extends Controller
      */
     public function process(Request $request)
     {
+        \Log::info('=== PROCESS IMPORT - Iniciando ===', [
+            'user_id' => auth()->id(),
+            'tenant_id' => auth()->user()->tenant_id,
+            'request_data' => $request->all(),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'filename' => 'required|string',
             'mapping' => 'required|array',
         ]);
 
         if ($validator->fails()) {
+            \Log::warning('Import validation failed', [
+                'errors' => $validator->errors()->toArray(),
+            ]);
             return back()
                 ->withErrors($validator)
                 ->with('error', 'Datos de importación inválidos.');
@@ -91,13 +128,25 @@ class ContactImportController extends Controller
         $mapping = $request->input('mapping');
         $filename = $request->input('filename');
 
+        \Log::info('Mapping received', [
+            'filename' => $filename,
+            'mapping' => $mapping,
+        ]);
+
         // Validate that phone is mapped
         if (!in_array('phone', $mapping)) {
+            \Log::warning('Phone field not mapped', [
+                'mapping' => $mapping,
+            ]);
             return back()->with('error', 'Debes mapear al menos la columna de Teléfono.');
         }
 
         // Verify file exists
         if (!Storage::disk('local')->exists($filename)) {
+            \Log::error('CSV file not found', [
+                'filename' => $filename,
+                'storage_path' => storage_path('app/' . $filename),
+            ]);
             return back()->with('error', 'El archivo CSV no fue encontrado. Por favor vuelve a subirlo.');
         }
 
@@ -105,14 +154,26 @@ class ContactImportController extends Controller
             $tenant = auth()->user()->tenant;
             $userId = auth()->id();
 
-            // Dispatch the job
-            ImportContactsFromCsvJob::dispatch($tenant, $filename, $mapping, $userId);
+            \Log::info('Executing import job synchronously', [
+                'tenant_id' => $tenant->id,
+                'filename' => $filename,
+                'user_id' => $userId,
+            ]);
+
+            // Execute the job synchronously (immediately)
+            ImportContactsFromCsvJob::dispatchSync($tenant, $filename, $mapping, $userId);
+
+            \Log::info('Import job completed successfully');
 
             return redirect()
                 ->route('contacts.index')
-                ->with('success', 'La importación de contactos ha comenzado. Recibirás una notificación cuando termine.');
+                ->with('success', '¡Importación completada! Se han importado los contactos exitosamente.');
 
         } catch (\Exception $e) {
+            \Log::error('Error starting import', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return back()->with('error', 'Error al iniciar la importación: ' . $e->getMessage());
         }
     }

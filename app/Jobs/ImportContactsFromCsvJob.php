@@ -185,23 +185,12 @@ class ImportContactsFromCsvJob implements ShouldQueue
     }
 
     /**
-     * Format phone number to E.164 format
+     * Format phone number - remove + and keep only numbers
      */
     protected function formatPhoneNumber(string $phoneNumber): string
     {
-        // Remove all non-numeric characters except +
-        $cleaned = preg_replace('/[^0-9+]/', '', $phoneNumber);
-
-        // Ensure it starts with +
-        if (!str_starts_with($cleaned, '+')) {
-            // If it starts with 00, replace with +
-            if (str_starts_with($cleaned, '00')) {
-                $cleaned = '+' . substr($cleaned, 2);
-            } else {
-                // Add + at the beginning
-                $cleaned = '+' . $cleaned;
-            }
-        }
+        // Remove all non-numeric characters including +
+        $cleaned = preg_replace('/[^0-9]/', '', $phoneNumber);
 
         return $cleaned;
     }
@@ -211,8 +200,8 @@ class ImportContactsFromCsvJob implements ShouldQueue
      */
     protected function isValidPhoneNumber(string $phoneNumber): bool
     {
-        // Basic validation: starts with + and has 10-15 digits
-        return preg_match('/^\+\d{10,15}$/', $phoneNumber) === 1;
+        // Basic validation: only digits, 10-15 characters
+        return preg_match('/^\d{10,15}$/', $phoneNumber) === 1;
     }
 
     /**

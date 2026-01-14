@@ -12,9 +12,11 @@ use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\MessageTemplateController;
 use App\Http\Controllers\ContactImportController;
 use App\Http\Controllers\InboxController;
+use App\Http\Controllers\RegisterController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -23,6 +25,10 @@ Route::get('/', function () {
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Registro de usuarios
+Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+Route::post('/register', [RegisterController::class, 'register']);
 
 // Stripe Webhook (must be outside auth middleware)
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('stripe.webhook');
@@ -35,25 +41,46 @@ Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
     Route::resource('clients', ClientController::class);
 
     // Módulo de Contactos
-    Route::resource('contacts', ContactController::class);
+    Route::get('/contacts', [ContactController::class, 'index'])->name('contacts.index');
+    Route::get('/contacts/create', [ContactController::class, 'create'])->name('contacts.create');
+    Route::post('/contacts', [ContactController::class, 'store'])->name('contacts.store')->middleware('subscription.limits:contacts');
+    Route::get('/contacts/{contact}', [ContactController::class, 'show'])->name('contacts.show');
+    Route::get('/contacts/{contact}/edit', [ContactController::class, 'edit'])->name('contacts.edit');
+    Route::put('/contacts/{contact}', [ContactController::class, 'update'])->name('contacts.update');
+    Route::delete('/contacts/{contact}', [ContactController::class, 'destroy'])->name('contacts.destroy');
+
     Route::get('/contacts-import', [ContactImportController::class, 'index'])->name('contacts.import');
-    Route::post('/contacts-import/upload', [ContactImportController::class, 'upload'])->name('contacts.import.upload');
-    Route::post('/contacts-import/process', [ContactImportController::class, 'process'])->name('contacts.import.process');
+    Route::post('/contacts-import/upload', [ContactImportController::class, 'upload'])->name('contacts.import.upload')->middleware('subscription.limits:contacts');
+    Route::post('/contacts-import/process', [ContactImportController::class, 'process'])->name('contacts.import.process')->middleware('subscription.limits:contacts');
     Route::post('/contacts-import/cancel', [ContactImportController::class, 'cancel'])->name('contacts.import.cancel');
 
     // Módulo de Inbox/Conversaciones
     Route::get('/inbox', [InboxController::class, 'index'])->name('inbox.index');
     Route::get('/inbox/{contact}', [InboxController::class, 'show'])->name('inbox.show');
+    Route::post('/inbox/{contact}/send', [InboxController::class, 'sendMessage'])->name('inbox.send')->middleware('subscription.limits:messages');
     Route::get('/inbox/stats', [InboxController::class, 'stats'])->name('inbox.stats');
 
     // Módulo de Campañas
-    Route::resource('campaigns', CampaignController::class);
+    Route::get('/campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
+    Route::get('/campaigns/create', [CampaignController::class, 'create'])->name('campaigns.create');
+    Route::post('/campaigns', [CampaignController::class, 'store'])->name('campaigns.store')->middleware('subscription.limits:campaigns');
+    Route::get('/campaigns/{campaign}', [CampaignController::class, 'show'])->name('campaigns.show');
+    Route::get('/campaigns/{campaign}/edit', [CampaignController::class, 'edit'])->name('campaigns.edit');
+    Route::put('/campaigns/{campaign}', [CampaignController::class, 'update'])->name('campaigns.update');
+    Route::delete('/campaigns/{campaign}', [CampaignController::class, 'destroy'])->name('campaigns.destroy');
     Route::post('/campaigns/{campaign}/prepare', [CampaignController::class, 'prepare'])->name('campaigns.prepare');
-    Route::post('/campaigns/{campaign}/execute', [CampaignController::class, 'execute'])->name('campaigns.execute');
+    Route::post('/campaigns/{campaign}/execute', [CampaignController::class, 'execute'])->name('campaigns.execute')->middleware('subscription.limits:messages');
+    Route::get('/campaigns/{campaign}/progress', [CampaignController::class, 'progress'])->name('campaigns.progress');
     Route::get('/campaigns/{campaign}/metrics', [CampaignController::class, 'metrics'])->name('campaigns.metrics');
 
     // Módulo de WABA Accounts
-    Route::resource('waba-accounts', WabaAccountController::class);
+    Route::get('/waba-accounts', [WabaAccountController::class, 'index'])->name('waba-accounts.index');
+    Route::get('/waba-accounts/create', [WabaAccountController::class, 'create'])->name('waba-accounts.create');
+    Route::post('/waba-accounts', [WabaAccountController::class, 'store'])->name('waba-accounts.store')->middleware('subscription.limits:waba_accounts');
+    Route::get('/waba-accounts/{waba_account}', [WabaAccountController::class, 'show'])->name('waba-accounts.show');
+    Route::get('/waba-accounts/{waba_account}/edit', [WabaAccountController::class, 'edit'])->name('waba-accounts.edit');
+    Route::put('/waba-accounts/{waba_account}', [WabaAccountController::class, 'update'])->name('waba-accounts.update');
+    Route::delete('/waba-accounts/{waba_account}', [WabaAccountController::class, 'destroy'])->name('waba-accounts.destroy');
 
     // Módulo de Plantillas de Mensajes
     Route::get('/templates/create', [MessageTemplateController::class, 'create'])->name('templates.create');
@@ -87,6 +114,11 @@ Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
     // Panel de Administración de Tenants (Solo Platform Admin)
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('tenants', TenantController::class);
+        Route::patch('tenants/{tenant}/toggle-status', [TenantController::class, 'toggleStatus'])->name('tenants.toggle-status');
+
+        // Gestión de Usuarios
+        Route::resource('users', AdminUserController::class);
+        Route::patch('users/{user}/toggle-status', [AdminUserController::class, 'toggleStatus'])->name('users.toggle-status');
 
         // Gestión de Planes de Suscripción
         Route::resource('plans', SubscriptionPlanController::class);

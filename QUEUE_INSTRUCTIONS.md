@@ -2,6 +2,45 @@
 
 El sistema de campañas de WhatsApp utiliza Laravel Queue para procesar el envío de mensajes en segundo plano.
 
+---
+
+## 🌐 Para HOSTINGER (Hosting Compartido) - PRODUCCIÓN
+
+En Hostinger **NO puedes ejecutar procesos perpetuos**. Usa **Cron Jobs**.
+
+### Configurar Cron Job en Hostinger
+
+1. Entra al panel de Hostinger
+2. Ve a **Advanced → Cron Jobs**
+3. Crea un nuevo Cron Job:
+
+**Comando:**
+```bash
+cd /home/tu_usuario/public_html && /usr/bin/php artisan queue:work --stop-when-empty --max-time=50
+```
+
+**Frecuencia:** Cada minuto
+```
+* * * * *
+```
+
+**Nota:** Reemplaza `/home/tu_usuario/public_html` con la ruta real de tu proyecto en Hostinger.
+
+### ¿Qué hace?
+- Se ejecuta cada minuto automáticamente
+- Procesa todos los trabajos pendientes
+- Se detiene cuando no hay más trabajos (no consume recursos)
+- Tiempo máximo de 50 segundos (antes del límite del cron)
+
+### Alternativa (si el anterior falla):
+```bash
+cd /home/tu_usuario/public_html && /usr/bin/php artisan queue:process-batch --limit=20 --max-time=50
+```
+
+---
+
+## 💻 Para DESARROLLO LOCAL (XAMPP) - Windows
+
 ## Opciones para ejecutar el Queue Worker
 
 ### Opción 1: Modo Visible (Recomendado para desarrollo)

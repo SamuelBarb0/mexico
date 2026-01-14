@@ -56,12 +56,9 @@
                         $pendingCount = $campaign->messages()->where('status', 'PENDING')->count();
                     @endphp
                     @if($pendingCount > 0)
-                        <form action="{{ route('campaigns.execute', $campaign) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de ejecutar esta campaña y enviar {{ $pendingCount }} mensajes?');">
-                            @csrf
-                            <button type="submit" class="bg-green-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:bg-green-600">
-                                <i class="bi bi-play-fill"></i> Ejecutar Campaña ({{ $pendingCount }} mensajes)
-                            </button>
-                        </form>
+                        <button type="button" onclick="startCampaignExecution()" id="executeButton" class="bg-green-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:bg-green-600">
+                            <i class="bi bi-play-fill"></i> Ejecutar Campaña ({{ $pendingCount }} mensajes)
+                        </button>
                     @endif
                 @endif
 
@@ -319,4 +316,138 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Progreso -->
+<div id="progressModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
+        <div class="text-center">
+            <div class="mb-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-green-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">Enviando Mensajes</h3>
+                <p class="text-gray-600 mb-4" id="progressText">Iniciando envío...</p>
+            </div>
+
+            <!-- Barra de Progreso -->
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-4 overflow-hidden">
+                <div id="progressBar" class="bg-gradient-to-r from-green-500 to-green-600 h-4 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div class="bg-gray-50 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-gray-900" id="sentCount">0</div>
+                    <div class="text-xs text-gray-600">Enviados</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-gray-900" id="pendingCount">{{ $pendingCount ?? 0 }}</div>
+                    <div class="text-xs text-gray-600">Pendientes</div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-red-600" id="failedCount">0</div>
+                    <div class="text-xs text-gray-600">Fallidos</div>
+                </div>
+            </div>
+
+            <!-- Botón de Cerrar (oculto hasta que termine) -->
+            <button type="button" onclick="closeProgressModal()" id="closeProgressButton" class="hidden mt-6 w-full px-4 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+                Aceptar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const campaignId = {{ $campaign->id }};
+let progressInterval = null;
+
+function startCampaignExecution() {
+    // Confirmar
+    if (!confirm('¿Estás seguro de ejecutar esta campaña y enviar los mensajes?')) {
+        return;
+    }
+
+    // Mostrar modal
+    document.getElementById('progressModal').classList.remove('hidden');
+    document.getElementById('progressModal').classList.add('flex');
+    document.getElementById('executeButton').disabled = true;
+
+    // Iniciar envío en segundo plano
+    fetch('{{ route('campaigns.execute', $campaign) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error('Error al ejecutar campaña');
+        }
+        // Iniciar polling para actualizar progreso
+        startProgressPolling();
+    }).catch(error => {
+        console.error('Error:', error);
+        alert('Error al ejecutar la campaña: ' + error.message);
+        closeProgressModal();
+    });
+}
+
+function startProgressPolling() {
+    // Actualizar inmediatamente
+    updateProgress();
+
+    // Actualizar cada 2 segundos
+    progressInterval = setInterval(updateProgress, 2000);
+}
+
+function updateProgress() {
+    fetch('{{ route('campaigns.progress', $campaign) }}')
+        .then(response => response.json())
+        .then(data => {
+            // Actualizar contador
+            document.getElementById('sentCount').textContent = data.sent;
+            document.getElementById('pendingCount').textContent = data.pending;
+            document.getElementById('failedCount').textContent = data.failed;
+
+            // Calcular porcentaje
+            const total = data.total;
+            const processed = data.sent + data.failed;
+            const percentage = total > 0 ? Math.round((processed / total) * 100) : 0;
+
+            // Actualizar barra de progreso
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressText').textContent =
+                `${processed} de ${total} mensajes procesados (${percentage}%)`;
+
+            // Si terminó
+            if (data.pending === 0) {
+                clearInterval(progressInterval);
+                document.getElementById('progressText').textContent =
+                    data.failed > 0
+                        ? `Campaña completada con ${data.failed} errores`
+                        : '¡Campaña completada exitosamente!';
+                document.getElementById('closeProgressButton').classList.remove('hidden');
+
+                // Recargar página después de 3 segundos
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            }
+        })
+        .catch(error => {
+            console.error('Error al obtener progreso:', error);
+        });
+}
+
+function closeProgressModal() {
+    document.getElementById('progressModal').classList.add('hidden');
+    document.getElementById('progressModal').classList.remove('flex');
+    clearInterval(progressInterval);
+    window.location.reload();
+}
+</script>
+
 @endsection

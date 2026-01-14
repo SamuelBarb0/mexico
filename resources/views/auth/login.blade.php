@@ -189,6 +189,10 @@
 
             <button type="submit" class="btn-login">Iniciar Sesión</button>
         </form>
+
+        <div style="text-align: center; margin-top: 20px; font-size: 14px; color: #666;">
+            ¿No tienes una cuenta? <a href="{{ route('register') }}" style="color: #667eea; text-decoration: none; font-weight: 600;">Regístrate gratis</a>
+        </div>
     </div>
 </body>
 </html>
