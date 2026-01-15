@@ -33,6 +33,17 @@ Route::post('/register', [RegisterController::class, 'register']);
 // Stripe Webhook (must be outside auth middleware)
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('stripe.webhook');
 
+// API Documentation (Swagger UI)
+Route::get('/api-docs', function () {
+    return file_get_contents(public_path('api-docs/index.html'));
+})->name('api.docs');
+
+Route::get('/api-docs/openapi.json', function () {
+    return response()->file(public_path('api-docs/openapi.json'), [
+        'Content-Type' => 'application/json'
+    ]);
+})->name('api.docs.spec');
+
 // Rutas protegidas con autenticación y validación de tenant
 Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

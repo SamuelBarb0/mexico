@@ -200,6 +200,17 @@
                             </svg>
                             <span>Gestionar Planes</span>
                         </a>
+
+                        <div class="pt-5 pb-2">
+                            <p class="px-3 text-xs font-bold text-primary-200 uppercase tracking-wider">Desarrolladores</p>
+                        </div>
+
+                        <a href="/api-docs" target="_blank" class="nav-link">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                            </svg>
+                            <span>API Documentation</span>
+                        </a>
                     @endif
                 </nav>
 

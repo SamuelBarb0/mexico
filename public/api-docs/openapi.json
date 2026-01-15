@@ -1,0 +1,1070 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "WhatsApp Business SaaS API",
+    "description": "API REST para integración con la plataforma de WhatsApp Business SaaS. Esta API permite gestionar contactos, campañas y mensajes de WhatsApp.\n\n## Autenticación\n\nTodas las rutas protegidas requieren un token Bearer. Obtén tu token usando el endpoint `/api/v1/auth/login`.\n\n## Rate Limiting\n\nLa API tiene límites de uso según tu plan de suscripción:\n- **Free**: 100 requests/minuto\n- **Basic**: 500 requests/minuto\n- **Professional**: 2000 requests/minuto\n- **Enterprise**: Sin límites\n\n## Códigos de Estado\n\n- `200` - Éxito\n- `201` - Recurso creado\n- `400` - Error de validación\n- `401` - No autenticado\n- `403` - No autorizado / Límite alcanzado\n- `404` - Recurso no encontrado\n- `500` - Error del servidor",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Soporte API",
+      "email": "api@whatsapp-saas.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://forestgreen-hamster-482261.hostingersite.com/api/v1",
+      "description": "Producción"
+    },
+    {
+      "url": "/api/v1",
+      "description": "API v1 (Relativo)"
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/v1",
+      "description": "Desarrollo Local (Laravel Serve)"
+    },
+    {
+      "url": "http://whatsapp.local/api/v1",
+      "description": "Desarrollo Local (Apache VirtualHost)"
+    },
+    {
+      "url": "http://localhost/mexico/api/v1",
+      "description": "Desarrollo Local (XAMPP Default)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Autenticación y gestión de tokens"
+    },
+    {
+      "name": "Contacts",
+      "description": "Gestión de contactos"
+    },
+    {
+      "name": "Campaigns",
+      "description": "Gestión de campañas de mensajes"
+    },
+    {
+      "name": "Messages",
+      "description": "Envío y gestión de mensajes"
+    },
+    {
+      "name": "Webhooks",
+      "description": "Webhooks de WhatsApp"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Iniciar sesión",
+        "description": "Obtiene un token de acceso para usar la API",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "usuario@ejemplo.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "mi-contraseña-segura"
+                  },
+                  "device_name": {
+                    "type": "string",
+                    "example": "mi-aplicacion"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login exitoso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales inválidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Cerrar sesión",
+        "description": "Revoca el token de acceso actual",
+        "operationId": "logout",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Sesión cerrada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Usuario actual",
+        "description": "Obtiene información del usuario autenticado",
+        "operationId": "me",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Información del usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contacts": {
+      "get": {
+        "tags": ["Contacts"],
+        "summary": "Listar contactos",
+        "description": "Obtiene una lista paginada de contactos",
+        "operationId": "listContacts",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Buscar por nombre, teléfono o email",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filtrar por estado",
+            "schema": {
+              "type": "string",
+              "enum": ["active", "inactive", "blocked"]
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "description": "Filtrar por etiqueta",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Resultados por página (máx 100)",
+            "schema": {"type": "integer", "default": 15}
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Número de página",
+            "schema": {"type": "integer", "default": 1}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de contactos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Contacts"],
+        "summary": "Crear contacto",
+        "description": "Crea un nuevo contacto",
+        "operationId": "createContact",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Contacto creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Límite de contactos alcanzado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contacts/{id}": {
+      "get": {
+        "tags": ["Contacts"],
+        "summary": "Obtener contacto",
+        "description": "Obtiene un contacto por ID",
+        "operationId": "getContact",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del contacto",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contacto encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contacto no encontrado"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Contacts"],
+        "summary": "Actualizar contacto",
+        "description": "Actualiza un contacto existente",
+        "operationId": "updateContact",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del contacto",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contacto actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Contacts"],
+        "summary": "Eliminar contacto",
+        "description": "Elimina un contacto",
+        "operationId": "deleteContact",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID del contacto",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contacto eliminado"
+          }
+        }
+      }
+    },
+    "/contacts/bulk-import": {
+      "post": {
+        "tags": ["Contacts"],
+        "summary": "Importación masiva",
+        "description": "Importa múltiples contactos (máximo 1000)",
+        "operationId": "bulkImportContacts",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["contacts"],
+                "properties": {
+                  "contacts": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "items": {
+                      "$ref": "#/components/schemas/ContactInput"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultado de la importación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkImportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/campaigns": {
+      "get": {
+        "tags": ["Campaigns"],
+        "summary": "Listar campañas",
+        "description": "Obtiene una lista paginada de campañas",
+        "operationId": "listCampaigns",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filtrar por estado",
+            "schema": {
+              "type": "string",
+              "enum": ["draft", "scheduled", "sending", "completed", "failed", "canceled"]
+            }
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "description": "Fecha desde (YYYY-MM-DD)",
+            "schema": {"type": "string", "format": "date"}
+          },
+          {
+            "name": "to_date",
+            "in": "query",
+            "description": "Fecha hasta (YYYY-MM-DD)",
+            "schema": {"type": "string", "format": "date"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de campañas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Campaigns"],
+        "summary": "Crear campaña",
+        "description": "Crea una nueva campaña",
+        "operationId": "createCampaign",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Campaña creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/campaigns/{id}": {
+      "get": {
+        "tags": ["Campaigns"],
+        "summary": "Obtener campaña",
+        "description": "Obtiene una campaña por ID",
+        "operationId": "getCampaign",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaña encontrada"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Campaigns"],
+        "summary": "Actualizar campaña",
+        "operationId": "updateCampaign",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "integer"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Campaña actualizada"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Campaigns"],
+        "summary": "Eliminar campaña",
+        "operationId": "deleteCampaign",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaña eliminada"
+          }
+        }
+      }
+    },
+    "/campaigns/{id}/stats": {
+      "get": {
+        "tags": ["Campaigns"],
+        "summary": "Estadísticas de campaña",
+        "description": "Obtiene estadísticas detalladas de una campaña",
+        "operationId": "getCampaignStats",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estadísticas de la campaña",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/messages": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Listar mensajes",
+        "description": "Obtiene una lista de mensajes",
+        "operationId": "listMessages",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "contact_id",
+            "in": "query",
+            "description": "Filtrar por contacto",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "Filtrar por dirección",
+            "schema": {
+              "type": "string",
+              "enum": ["inbound", "outbound"]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filtrar por estado",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de mensajes"
+          }
+        }
+      }
+    },
+    "/messages/conversation/{contactId}": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Conversación con contacto",
+        "description": "Obtiene todos los mensajes de una conversación",
+        "operationId": "getConversation",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "description": "ID del contacto",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensajes de la conversación"
+          }
+        }
+      }
+    },
+    "/messages/send-text": {
+      "post": {
+        "tags": ["Messages"],
+        "summary": "Enviar mensaje de texto",
+        "description": "Envía un mensaje de texto a un contacto",
+        "operationId": "sendTextMessage",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["contact_id", "message"],
+                "properties": {
+                  "contact_id": {
+                    "type": "integer",
+                    "description": "ID del contacto"
+                  },
+                  "message": {
+                    "type": "string",
+                    "maxLength": 4096,
+                    "description": "Contenido del mensaje"
+                  },
+                  "waba_account_id": {
+                    "type": "integer",
+                    "description": "ID de la cuenta WABA (opcional)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensaje enviado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendMessageResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Límite de mensajes alcanzado"
+          }
+        }
+      }
+    },
+    "/messages/send-template": {
+      "post": {
+        "tags": ["Messages"],
+        "summary": "Enviar plantilla",
+        "description": "Envía un mensaje usando una plantilla aprobada",
+        "operationId": "sendTemplateMessage",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["contact_id", "template_id"],
+                "properties": {
+                  "contact_id": {
+                    "type": "integer"
+                  },
+                  "template_id": {
+                    "type": "integer"
+                  },
+                  "variables": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensaje enviado"
+          }
+        }
+      }
+    },
+    "/messages/{id}/status": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Estado del mensaje",
+        "description": "Obtiene el estado actual de un mensaje",
+        "operationId": "getMessageStatus",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado del mensaje",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook/whatsapp": {
+      "get": {
+        "tags": ["Webhooks"],
+        "summary": "Verificar webhook",
+        "description": "Endpoint para verificación de webhook de Meta",
+        "operationId": "verifyWebhook",
+        "parameters": [
+          {
+            "name": "hub.mode",
+            "in": "query",
+            "required": true,
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "hub.verify_token",
+            "in": "query",
+            "required": true,
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "hub.challenge",
+            "in": "query",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verificación exitosa"
+          },
+          "403": {
+            "description": "Token inválido"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Recibir eventos",
+        "description": "Endpoint para recibir eventos de WhatsApp",
+        "operationId": "handleWebhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Evento procesado"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Token"
+      }
+    },
+    "schemas": {
+      "Success": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean", "example": true},
+          "message": {"type": "string"}
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean", "example": false},
+          "message": {"type": "string"},
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "object",
+                "properties": {
+                  "id": {"type": "integer"},
+                  "name": {"type": "string"},
+                  "email": {"type": "string"},
+                  "user_type": {"type": "string"},
+                  "tenant_id": {"type": "integer"}
+                }
+              },
+              "token": {"type": "string"},
+              "token_type": {"type": "string", "example": "Bearer"}
+            }
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "integer"},
+              "name": {"type": "string"},
+              "email": {"type": "string"},
+              "user_type": {"type": "string"},
+              "tenant": {
+                "type": "object",
+                "properties": {
+                  "id": {"type": "integer"},
+                  "name": {"type": "string"},
+                  "slug": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "Contact": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "name": {"type": "string"},
+          "phone": {"type": "string"},
+          "email": {"type": "string", "nullable": true},
+          "status": {"type": "string", "enum": ["active", "inactive", "blocked"]},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "custom_fields": {"type": "object"},
+          "created_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "ContactInput": {
+        "type": "object",
+        "required": ["name", "phone"],
+        "properties": {
+          "name": {"type": "string", "maxLength": 255},
+          "phone": {"type": "string", "maxLength": 20, "example": "521234567890"},
+          "email": {"type": "string", "format": "email"},
+          "country_code": {"type": "string", "maxLength": 5},
+          "status": {"type": "string", "enum": ["active", "inactive", "blocked"]},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "custom_fields": {"type": "object"},
+          "notes": {"type": "string", "maxLength": 1000}
+        }
+      },
+      "ContactResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {"$ref": "#/components/schemas/Contact"}
+        }
+      },
+      "ContactListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/Contact"}
+          },
+          "meta": {"$ref": "#/components/schemas/PaginationMeta"},
+          "links": {"$ref": "#/components/schemas/PaginationLinks"}
+        }
+      },
+      "BulkImportResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {
+            "type": "object",
+            "properties": {
+              "imported": {"type": "integer"},
+              "skipped": {"type": "integer"},
+              "errors": {
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            }
+          }
+        }
+      },
+      "Campaign": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "status": {"type": "string", "enum": ["draft", "scheduled", "sending", "completed", "failed", "canceled"]},
+          "scheduled_at": {"type": "string", "format": "date-time", "nullable": true},
+          "started_at": {"type": "string", "format": "date-time", "nullable": true},
+          "completed_at": {"type": "string", "format": "date-time", "nullable": true},
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "CampaignInput": {
+        "type": "object",
+        "required": ["name", "message_template_id", "waba_account_id"],
+        "properties": {
+          "name": {"type": "string", "maxLength": 255},
+          "description": {"type": "string", "maxLength": 1000},
+          "message_template_id": {"type": "integer"},
+          "waba_account_id": {"type": "integer"},
+          "scheduled_at": {"type": "string", "format": "date-time"},
+          "contact_ids": {
+            "type": "array",
+            "items": {"type": "integer"}
+          },
+          "template_variables": {"type": "object"}
+        }
+      },
+      "CampaignResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {"$ref": "#/components/schemas/Campaign"}
+        }
+      },
+      "CampaignListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "data": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/Campaign"}
+          },
+          "meta": {"$ref": "#/components/schemas/PaginationMeta"}
+        }
+      },
+      "CampaignStatsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "data": {
+            "type": "object",
+            "properties": {
+              "campaign": {
+                "type": "object",
+                "properties": {
+                  "id": {"type": "integer"},
+                  "name": {"type": "string"},
+                  "status": {"type": "string"}
+                }
+              },
+              "statistics": {
+                "type": "object",
+                "properties": {
+                  "total_recipients": {"type": "integer"},
+                  "sent": {"type": "integer"},
+                  "delivered": {"type": "integer"},
+                  "read": {"type": "integer"},
+                  "failed": {"type": "integer"},
+                  "pending": {"type": "integer"},
+                  "delivery_rate": {"type": "number"},
+                  "read_rate": {"type": "number"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "SendMessageResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {
+            "type": "object",
+            "properties": {
+              "message_id": {"type": "integer"},
+              "whatsapp_message_id": {"type": "string"},
+              "status": {"type": "string"}
+            }
+          }
+        }
+      },
+      "MessageStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "integer"},
+              "whatsapp_message_id": {"type": "string"},
+              "status": {"type": "string"},
+              "sent_at": {"type": "string", "format": "date-time", "nullable": true},
+              "delivered_at": {"type": "string", "format": "date-time", "nullable": true},
+              "read_at": {"type": "string", "format": "date-time", "nullable": true},
+              "failed_at": {"type": "string", "format": "date-time", "nullable": true},
+              "error_message": {"type": "string", "nullable": true}
+            }
+          }
+        }
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "properties": {
+          "current_page": {"type": "integer"},
+          "last_page": {"type": "integer"},
+          "per_page": {"type": "integer"},
+          "total": {"type": "integer"},
+          "from": {"type": "integer"},
+          "to": {"type": "integer"}
+        }
+      },
+      "PaginationLinks": {
+        "type": "object",
+        "properties": {
+          "first": {"type": "string"},
+          "last": {"type": "string"},
+          "prev": {"type": "string", "nullable": true},
+          "next": {"type": "string", "nullable": true}
+        }
+      }
+    }
+  }
+}

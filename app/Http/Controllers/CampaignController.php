@@ -291,7 +291,7 @@ class CampaignController extends Controller
     /**
      * Execute campaign by dispatching jobs to send messages
      */
-    public function execute(Campaign $campaign)
+    public function execute(Request $request, Campaign $campaign)
     {
         \Log::info('=== INICIO: Ejecución de campaña ===', [
             'campaign_id' => $campaign->id,
