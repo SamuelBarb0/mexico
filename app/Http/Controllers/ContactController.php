@@ -8,10 +8,35 @@ use Illuminate\Http\Request;
 
 class ContactController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $contacts = Contact::with('client')->paginate(15);
-        return view('contacts.index', compact('contacts'));
+        $query = Contact::with('client');
+
+        // Search filter
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('whatsapp_id', 'like', "%{$search}%");
+            });
+        }
+
+        // Client filter
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->input('client_id'));
+        }
+
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $contacts = $query->orderBy('created_at', 'desc')->paginate(15);
+        $clients = Client::orderBy('name')->get();
+
+        return view('contacts.index', compact('contacts', 'clients'));
     }
 
     public function create()

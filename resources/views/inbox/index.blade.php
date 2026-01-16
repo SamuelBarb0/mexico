@@ -25,6 +25,39 @@
         </div>
     </div>
 
+    <!-- WABA Account Warning -->
+    @if(!Auth::user()->tenant || !Auth::user()->tenant->wabaAccounts || Auth::user()->tenant->wabaAccounts->count() === 0)
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-lg p-6 shadow-lg">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div class="ml-4 flex-1">
+                    <h3 class="text-lg font-bold text-amber-900 mb-2">Cuenta de WhatsApp Business requerida</h3>
+                    <p class="text-amber-800 mb-4">
+                        Para recibir y enviar mensajes, necesitas conectar una cuenta de WhatsApp Business API (WABA) primero.
+                    </p>
+                    <div class="bg-white/50 rounded-lg p-4 mb-4">
+                        <h4 class="font-semibold text-amber-900 mb-2">¿Qué necesitas hacer?</h4>
+                        <ul class="list-disc list-inside space-y-1 text-sm text-amber-800">
+                            <li>Registra una cuenta de WhatsApp Business API</li>
+                            <li>Conecta tu cuenta WABA a esta plataforma</li>
+                            <li>Una vez conectada, podrás recibir y enviar mensajes</li>
+                        </ul>
+                    </div>
+                    <a href="{{ route('waba-accounts.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Conectar Cuenta WABA
+                    </a>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if($conversations->isEmpty())
         <!-- Estado Vacío -->
         <div class="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-12 text-center border border-gray-200">
@@ -36,14 +69,27 @@
                 </div>
                 <h3 class="text-2xl font-bold text-gray-900 mb-3">No hay conversaciones</h3>
                 <p class="text-gray-600 mb-6">
-                    Las conversaciones aparecerán aquí cuando envíes o recibas mensajes de tus contactos.
+                    @if(Auth::user()->tenant && Auth::user()->tenant->wabaAccounts && Auth::user()->tenant->wabaAccounts->count() > 0)
+                        Las conversaciones aparecerán aquí cuando envíes o recibas mensajes de tus contactos.
+                    @else
+                        Primero conecta una cuenta WABA para empezar a recibir y enviar mensajes.
+                    @endif
                 </p>
-                <a href="{{ route('campaigns.index') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
-                    </svg>
-                    Crear tu Primera Campaña
-                </a>
+                @if(Auth::user()->tenant && Auth::user()->tenant->wabaAccounts && Auth::user()->tenant->wabaAccounts->count() > 0)
+                    <a href="{{ route('campaigns.index') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+                        </svg>
+                        Crear tu Primera Campaña
+                    </a>
+                @else
+                    <a href="{{ route('waba-accounts.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Conectar Cuenta WABA
+                    </a>
+                @endif
             </div>
         </div>
     @else

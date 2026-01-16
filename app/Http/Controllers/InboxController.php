@@ -17,6 +17,12 @@ class InboxController extends Controller
     {
         $tenant = auth()->user()->tenant;
 
+        // Check if tenant exists
+        if (!$tenant) {
+            $conversations = collect();
+            return view('inbox.index', compact('conversations'));
+        }
+
         // Get contacts with their last message, ordered by most recent
         $conversations = Contact::where('contacts.tenant_id', $tenant->id)
             ->whereHas('messages') // Only contacts with messages
@@ -90,6 +96,16 @@ class InboxController extends Controller
     public function stats()
     {
         $tenant = auth()->user()->tenant;
+
+        // Check if tenant exists
+        if (!$tenant) {
+            return response()->json([
+                'total_conversations' => 0,
+                'unread_messages' => 0,
+                'total_messages_sent' => 0,
+                'total_messages_received' => 0,
+            ]);
+        }
 
         $stats = [
             'total_conversations' => Contact::where('tenant_id', $tenant->id)

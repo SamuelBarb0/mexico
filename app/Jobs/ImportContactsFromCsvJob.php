@@ -23,16 +23,18 @@ class ImportContactsFromCsvJob implements ShouldQueue
     protected string $filePath;
     protected array $mapping;
     protected ?int $userId;
+    protected ?int $clientId;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(Tenant $tenant, string $filePath, array $mapping, ?int $userId = null)
+    public function __construct(Tenant $tenant, string $filePath, array $mapping, ?int $userId = null, ?int $clientId = null)
     {
         $this->tenant = $tenant;
         $this->filePath = $filePath;
         $this->mapping = $mapping;
         $this->userId = $userId;
+        $this->clientId = $clientId;
     }
 
     /**
@@ -117,6 +119,12 @@ class ImportContactsFromCsvJob implements ShouldQueue
                     } else {
                         // Create new contact
                         $contactData['tenant_id'] = $this->tenant->id;
+
+                        // Set client_id if provided
+                        if ($this->clientId) {
+                            $contactData['client_id'] = $this->clientId;
+                        }
+
                         $contact = Contact::create($contactData);
                         $stats['created']++;
 

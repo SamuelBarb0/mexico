@@ -36,6 +36,30 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Mapping Table -->
             <div class="lg:col-span-2">
+                <!-- Client Selection Card -->
+                <div class="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-hidden mb-6">
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-100 px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-xl font-bold text-gray-900 flex items-center">
+                            <span class="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm">1</span>
+                            Asignar a Cliente (Opcional)
+                        </h2>
+                    </div>
+
+                    <div class="p-6">
+                        <label for="client_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            ¿A qué cliente deseas asignar estos contactos?
+                        </label>
+                        <select name="client_id" id="client_id" class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">-- Sin asignar a cliente --</option>
+                            @foreach($clients as $client)
+                                <option value="{{ $client->id }}">{{ $client->name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-sm text-gray-500 mt-2">
+                            Si seleccionas un cliente, todos los contactos importados se asociarán a ese cliente.
+                        </p>
+                    </div>
+                </div>
                 <div class="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
                     <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
                         <h2 class="text-xl font-bold text-gray-900 flex items-center">

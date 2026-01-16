@@ -51,20 +51,18 @@
                     </form>
                 @endif
 
-                @if($campaign->total_recipients > 0 && in_array($campaign->status, ['draft', 'scheduled', 'paused']))
-                    @php
-                        $pendingCount = $campaign->messages()->where('status', 'PENDING')->count();
-                    @endphp
-                    @if($pendingCount > 0)
-                        <button type="button" onclick="startCampaignExecution()" id="executeButton" class="bg-green-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:bg-green-600">
-                            <i class="bi bi-play-fill"></i> Ejecutar Campaña ({{ $pendingCount }} mensajes)
+                @if(in_array($campaign->status, ['draft', 'scheduled', 'paused']) && $campaign->total_recipients > 0)
+                    <form action="{{ route('campaigns.execute', $campaign) }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="bg-green-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:bg-green-600">
+                            <i class="bi bi-play-circle"></i> Ejecutar Campaña ({{ number_format($campaign->total_recipients) }} mensajes)
                         </button>
-                    @endif
+                    </form>
                 @endif
 
                 @if($campaign->total_recipients > 0)
-                    <a href="{{ route('campaigns.metrics', $campaign) }}" class="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
-                        Ver Métricas
+                    <a href="{{ route('campaigns.metrics', $campaign) }}" class="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:bg-blue-600">
+                        <i class="bi bi-bar-chart"></i> Ver Métricas
                     </a>
                 @endif
             </div>
@@ -251,22 +249,6 @@
                             </button>
                         </form>
                         <p class="text-xs text-gray-600">Genera mensajes individuales para todos los contactos</p>
-                    @endif
-
-                    @if(in_array($campaign->status, ['draft', 'scheduled', 'paused']) && $campaign->total_recipients > 0)
-                        <form action="{{ route('campaigns.execute', $campaign) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition shadow-lg">
-                                Ejecutar Campaña
-                            </button>
-                        </form>
-                        <p class="text-xs text-gray-600">Inicia el envío de mensajes en segundo plano</p>
-                    @endif
-
-                    @if($campaign->total_recipients > 0)
-                        <a href="{{ route('campaigns.metrics', $campaign) }}" class="block w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-center transition shadow-lg">
-                            Ver Métricas Detalladas
-                        </a>
                     @endif
 
                     @if($campaign->status === 'draft')

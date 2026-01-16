@@ -37,6 +37,69 @@
         </div>
     </div>
 
+    <!-- Search and Filters -->
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-gray-200">
+        <form method="GET" action="{{ route('contacts.index') }}" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Search -->
+                <div class="md:col-span-2">
+                    <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input type="text" name="search" id="search" value="{{ request('search') }}"
+                               placeholder="Buscar por nombre, teléfono, email..."
+                               class="pl-10 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
+                    </div>
+                </div>
+
+                <!-- Client Filter -->
+                <div>
+                    <label for="client_id" class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+                    <select name="client_id" id="client_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
+                        <option value="">Todos los clientes</option>
+                        @foreach($clients as $client)
+                            <option value="{{ $client->id }}" {{ request('client_id') == $client->id ? 'selected' : '' }}>
+                                {{ $client->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                    <select name="status" id="status" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
+                        <option value="">Todos los estados</option>
+                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Activo</option>
+                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactivo</option>
+                        <option value="blocked" {{ request('status') == 'blocked' ? 'selected' : '' }}>Bloqueado</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="submit" class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Buscar
+                </button>
+                @if(request()->hasAny(['search', 'client_id', 'status']))
+                    <a href="{{ route('contacts.index') }}" class="inline-flex items-center px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Limpiar Filtros
+                    </a>
+                @endif
+            </div>
+        </form>
+    </div>
+
     <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-success-100">
         @if($contacts->isEmpty())
             <div class="text-center py-16 px-6">
@@ -45,14 +108,29 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                     </svg>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-800 mb-2">No hay contactos registrados</h3>
-                <p class="text-gray-600 mb-6">Comienza agregando tu primer contacto</p>
-                <a href="{{ route('contacts.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Crear Primer Contacto
-                </a>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">No se encontraron contactos</h3>
+                <p class="text-gray-600 mb-6">
+                    @if(request()->hasAny(['search', 'client_id', 'status']))
+                        No hay contactos que coincidan con los filtros seleccionados
+                    @else
+                        Comienza agregando tu primer contacto
+                    @endif
+                </p>
+                @if(request()->hasAny(['search', 'client_id', 'status']))
+                    <a href="{{ route('contacts.index') }}" class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Limpiar Filtros
+                    </a>
+                @else
+                    <a href="{{ route('contacts.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Crear Primer Contacto
+                    </a>
+                @endif
             </div>
         @else
             <div class="overflow-x-auto">

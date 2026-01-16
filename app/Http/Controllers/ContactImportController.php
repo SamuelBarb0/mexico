@@ -84,11 +84,17 @@ class ContactImportController extends Controller
                 'email' => 'Email',
             ];
 
+            // Get clients for selection
+            $clients = \App\Models\Client::where('tenant_id', auth()->user()->tenant_id)
+                ->orderBy('name')
+                ->get();
+
             return view('contacts.import-mapping', [
                 'filename' => $filename,
                 'header' => $header,
                 'preview' => $preview,
                 'availableFields' => $availableFields,
+                'clients' => $clients,
             ]);
 
         } catch (\Exception $e) {
@@ -114,6 +120,7 @@ class ContactImportController extends Controller
         $validator = Validator::make($request->all(), [
             'filename' => 'required|string',
             'mapping' => 'required|array',
+            'client_id' => 'nullable|exists:clients,id',
         ]);
 
         if ($validator->fails()) {
@@ -127,6 +134,7 @@ class ContactImportController extends Controller
 
         $mapping = $request->input('mapping');
         $filename = $request->input('filename');
+        $clientId = $request->input('client_id');
 
         \Log::info('Mapping received', [
             'filename' => $filename,
@@ -158,10 +166,11 @@ class ContactImportController extends Controller
                 'tenant_id' => $tenant->id,
                 'filename' => $filename,
                 'user_id' => $userId,
+                'client_id' => $clientId,
             ]);
 
             // Execute the job synchronously (immediately)
-            ImportContactsFromCsvJob::dispatchSync($tenant, $filename, $mapping, $userId);
+            ImportContactsFromCsvJob::dispatchSync($tenant, $filename, $mapping, $userId, $clientId);
 
             \Log::info('Import job completed successfully');
 

@@ -137,29 +137,110 @@
 
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Tipo de Audiencia</label>
-                            <select name="target_audience[type]" x-model="targetType" class="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500">
-                                <option value="all">Todos los contactos</option>
-                                <option value="lists">Por listas</option>
-                                <option value="tags">Por etiquetas</option>
-                                <option value="custom">Filtros personalizados</option>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Filtrar Por</label>
+                            <select name="target_audience[type]" x-model="targetType" required class="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500">
+                                <option value="all">Todos los contactos activos</option>
+                                <option value="client">Por Cliente</option>
+                                <option value="tags">Por Etiquetas</option>
+                                <option value="status">Por Estado</option>
                             </select>
                         </div>
 
-                        <div x-show="targetType === 'all'" class="p-4 bg-blue-50 rounded-lg">
-                            <p class="text-sm text-blue-700">Se enviarán mensajes a todos los contactos activos.</p>
+                        <!-- All Contacts -->
+                        <div x-show="targetType === 'all'" class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-semibold text-green-800">Todos los contactos activos</p>
+                                    <p class="text-xs text-green-700 mt-1">Se enviarán mensajes a todos los contactos con estado "activo" en tu base de datos.</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <div x-show="targetType === 'lists'" class="p-4 bg-gray-50 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-2">Seleccionar listas de contactos (funcionalidad próximamente)</p>
+                        <!-- By Client -->
+                        <div x-show="targetType === 'client'" class="space-y-3">
+                            <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <p class="text-sm text-blue-800 flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Selecciona el cliente al que enviarás la campaña
+                                </p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Cliente</label>
+                                <select name="target_audience[client_id]" class="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500">
+                                    <option value="">Seleccionar cliente...</option>
+                                    @foreach($clients as $client)
+                                        <option value="{{ $client->id }}">{{ $client->name }} @if($client->company)({{ $client->company }})@endif</option>
+                                    @endforeach
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Se enviarán mensajes a todos los contactos asociados a este cliente</p>
+                            </div>
                         </div>
 
-                        <div x-show="targetType === 'tags'" class="p-4 bg-gray-50 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-2">Seleccionar etiquetas (funcionalidad próximamente)</p>
+                        <!-- By Tags -->
+                        <div x-show="targetType === 'tags'" class="space-y-3">
+                            <div class="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                <p class="text-sm text-purple-800 flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                    </svg>
+                                    Filtra por etiquetas de contactos
+                                </p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Etiquetas</label>
+                                <div class="space-y-2 max-h-48 overflow-y-auto p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                    @if($allTags->isEmpty())
+                                        <p class="text-sm text-gray-500 italic">No hay etiquetas disponibles. Agrega etiquetas a tus contactos primero.</p>
+                                    @else
+                                        @foreach($allTags as $tag)
+                                            <label class="flex items-center hover:bg-white p-2 rounded transition-colors cursor-pointer">
+                                                <input type="checkbox" name="target_audience[tags][]" value="{{ $tag }}" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                                <span class="ml-2 text-sm text-gray-700">{{ $tag }}</span>
+                                            </label>
+                                        @endforeach
+                                    @endif
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Se enviarán mensajes a contactos que tengan al menos una de las etiquetas seleccionadas</p>
+                            </div>
                         </div>
 
-                        <div x-show="targetType === 'custom'" class="p-4 bg-gray-50 rounded-lg">
-                            <p class="text-sm text-gray-600 mb-2">Filtros personalizados (funcionalidad próximamente)</p>
+                        <!-- By Status -->
+                        <div x-show="targetType === 'status'" class="space-y-3">
+                            <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                <p class="text-sm text-amber-800 flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Filtra por estado de contactos
+                                </p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Estado</label>
+                                <select name="target_audience[status]" class="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500">
+                                    <option value="active">Activo</option>
+                                    <option value="inactive">Inactivo</option>
+                                    <option value="blocked">Bloqueado</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Se enviarán mensajes solo a contactos con el estado seleccionado</p>
+                            </div>
+                        </div>
+
+                        <!-- Contact Count Preview -->
+                        <div class="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                    </svg>
+                                    <span class="text-sm font-semibold text-indigo-900">Audiencia estimada</span>
+                                </div>
+                                <span class="text-sm text-indigo-700">Se calculará después de crear la campaña</span>
+                            </div>
                         </div>
                     </div>
                 </div>

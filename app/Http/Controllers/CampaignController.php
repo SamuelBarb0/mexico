@@ -40,8 +40,18 @@ class CampaignController extends Controller
     {
         $wabaAccounts = WabaAccount::where('status', 'active')->orderBy('name')->get();
         $templates = MessageTemplate::where('status', 'APPROVED')->orderBy('name')->get();
+        $clients = \App\Models\Client::orderBy('name')->get();
 
-        return view('campaigns.create', compact('wabaAccounts', 'templates'));
+        // Get unique tags from contacts
+        $allTags = \App\Models\Contact::whereNotNull('tags')
+            ->get()
+            ->pluck('tags')
+            ->flatten()
+            ->unique()
+            ->sort()
+            ->values();
+
+        return view('campaigns.create', compact('wabaAccounts', 'templates', 'clients', 'allTags'));
     }
 
     public function store(Request $request)
@@ -61,9 +71,11 @@ class CampaignController extends Controller
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'type' => 'required|in:broadcast,drip,triggered',
-                'target_audience.type' => 'required|in:all,lists,tags,custom',
-                'target_audience.lists' => 'nullable|array',
+                'target_audience.type' => 'required|in:all,client,tags,status,custom',
+                'target_audience.client_id' => 'nullable|exists:clients,id',
+                'target_audience.status' => 'nullable|in:active,inactive,blocked',
                 'target_audience.tags' => 'nullable|array',
+                'target_audience.tags.*' => 'nullable|string',
                 'template_variables_mapping' => 'nullable|array',
                 'scheduled_at' => 'nullable|date|after:now',
             ]);
@@ -72,7 +84,8 @@ class CampaignController extends Controller
             // Build target_audience array
             $targetAudience = [
                 'type' => $request->input('target_audience.type', 'all'),
-                'lists' => $request->input('target_audience.lists', []),
+                'client_id' => $request->input('target_audience.client_id'),
+                'status' => $request->input('target_audience.status'),
                 'tags' => $request->input('target_audience.tags', []),
             ];
             \Log::info('Target audience construido:', $targetAudience);

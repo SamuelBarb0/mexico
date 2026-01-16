@@ -7,6 +7,8 @@
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css">
     <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5.9.0/favicon-32x32.png" sizes="32x32">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
         html {
             box-sizing: border-box;
             overflow-y: scroll;
@@ -20,117 +22,380 @@
 
         body {
             margin: 0;
-            background: #fafafa;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
+        /* Hide default topbar */
         .swagger-ui .topbar {
-            background-color: #1a1a2e;
-        }
-
-        .swagger-ui .topbar .download-url-wrapper .select-label {
-            color: #fff;
-        }
-
-        .swagger-ui .topbar-wrapper .link {
-            content: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>');
+            display: none;
         }
 
         .swagger-ui .info .title {
             color: #1a1a2e;
+            font-family: 'Inter', sans-serif;
         }
 
         .swagger-ui .scheme-container {
             background: #fff;
-            box-shadow: 0 1px 2px 0 rgba(0,0,0,.15);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
         }
 
+        /* Enhanced HTTP method styling */
         .swagger-ui .opblock.opblock-post {
-            border-color: #49cc90;
-            background: rgba(73,204,144,.1);
+            border-color: #10b981;
+            background: linear-gradient(135deg, rgba(16,185,129,.08) 0%, rgba(16,185,129,.15) 100%);
+            border-left: 4px solid #10b981;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .swagger-ui .opblock.opblock-post:hover {
+            box-shadow: 0 10px 15px -3px rgba(16,185,129,.2), 0 4px 6px -2px rgba(16,185,129,.1);
+            transform: translateY(-2px);
         }
 
         .swagger-ui .opblock.opblock-get {
-            border-color: #61affe;
-            background: rgba(97,175,254,.1);
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, rgba(59,130,246,.08) 0%, rgba(59,130,246,.15) 100%);
+            border-left: 4px solid #3b82f6;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .swagger-ui .opblock.opblock-get:hover {
+            box-shadow: 0 10px 15px -3px rgba(59,130,246,.2), 0 4px 6px -2px rgba(59,130,246,.1);
+            transform: translateY(-2px);
         }
 
         .swagger-ui .opblock.opblock-put {
-            border-color: #fca130;
-            background: rgba(252,161,48,.1);
+            border-color: #f59e0b;
+            background: linear-gradient(135deg, rgba(245,158,11,.08) 0%, rgba(245,158,11,.15) 100%);
+            border-left: 4px solid #f59e0b;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .swagger-ui .opblock.opblock-put:hover {
+            box-shadow: 0 10px 15px -3px rgba(245,158,11,.2), 0 4px 6px -2px rgba(245,158,11,.1);
+            transform: translateY(-2px);
         }
 
         .swagger-ui .opblock.opblock-delete {
-            border-color: #f93e3e;
-            background: rgba(249,62,62,.1);
+            border-color: #ef4444;
+            background: linear-gradient(135deg, rgba(239,68,68,.08) 0%, rgba(239,68,68,.15) 100%);
+            border-left: 4px solid #ef4444;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .swagger-ui .opblock.opblock-delete:hover {
+            box-shadow: 0 10px 15px -3px rgba(239,68,68,.2), 0 4px 6px -2px rgba(239,68,68,.1);
+            transform: translateY(-2px);
         }
 
         .swagger-ui .btn.authorize {
-            color: #49cc90;
-            border-color: #49cc90;
+            color: #10b981;
+            border-color: #10b981;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .swagger-ui .btn.authorize:hover {
+            box-shadow: 0 10px 15px -3px rgba(16,185,129,.3);
+            transform: translateY(-2px);
         }
 
         .swagger-ui .btn.authorize svg {
-            fill: #49cc90;
+            fill: white;
         }
 
-        /* Custom header */
+        /* Custom header with enhanced gradient */
         .custom-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 15s ease infinite;
             color: white;
-            padding: 20px;
+            padding: 60px 40px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(102,126,234,.4);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .custom-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(255,255,255,.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 50%, rgba(255,255,255,.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .custom-header .content-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .custom-header h1 {
             margin: 0;
-            font-size: 24px;
-            font-weight: 600;
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            text-shadow: 0 4px 20px rgba(0,0,0,.2);
+            background: linear-gradient(to right, #fff, #f0f0ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
         }
 
-        .custom-header p {
-            margin: 10px 0 0;
-            opacity: 0.9;
-            font-size: 14px;
+        .custom-header .subtitle {
+            margin: 16px 0 0;
+            opacity: 0.95;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+        }
+
+        .custom-header .badges {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 24px;
+            flex-wrap: wrap;
         }
 
         .custom-header .version {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255,255,255,0.25);
+            backdrop-filter: blur(10px);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,.1);
+            transition: all 0.3s ease;
+        }
+
+        .custom-header .version:hover {
+            background: rgba(255,255,255,0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,.15);
+        }
+
+        .custom-header .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             background: rgba(255,255,255,0.2);
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            margin-top: 10px;
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(255,255,255,0.25);
         }
 
         .back-link {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 24px;
+            left: 32px;
             color: white;
             text-decoration: none;
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            z-index: 10;
         }
 
         .back-link:hover {
-            text-decoration: underline;
+            background: rgba(255,255,255,0.25);
+            transform: translateX(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        }
+
+        .back-link svg {
+            transition: transform 0.3s ease;
+        }
+
+        .back-link:hover svg {
+            transform: translateX(-3px);
+        }
+
+        /* Info section styling */
+        .info-cards {
+            max-width: 1200px;
+            margin: -40px auto 30px;
+            padding: 0 40px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .info-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.08);
+            border: 1px solid rgba(0,0,0,.05);
+            transition: all 0.3s ease;
+        }
+
+        .info-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,.12);
+        }
+
+        .info-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .info-card h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        .info-card p {
+            margin: 0;
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        /* Swagger UI container */
+        #swagger-ui {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 40px 60px;
+        }
+
+        /* Response section styling */
+        .swagger-ui .responses-wrapper {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Model section */
+        .swagger-ui section.models {
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            padding: 20px;
         }
     </style>
 </head>
 <body>
     <div class="custom-header">
         <a href="/" class="back-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
             </svg>
             Volver al Dashboard
         </a>
-        <h1>WhatsApp Business SaaS API</h1>
-        <p>Documentacion completa de la API REST</p>
-        <span class="version">v1.0.0</span>
+        <div class="content-wrapper">
+            <h1>WhatsApp Business SaaS API</h1>
+            <p class="subtitle">Documentación completa de la API REST para integración empresarial</p>
+            <div class="badges">
+                <span class="version">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 6px;">
+                        <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
+                    </svg>
+                    v1.0.0
+                </span>
+                <span class="badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                    </svg>
+                    OAuth 2.0
+                </span>
+                <span class="badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                    REST API
+                </span>
+            </div>
+        </div>
     </div>
+
+    <div class="info-cards">
+        <div class="info-cards-grid">
+            <div class="info-card">
+                <div class="info-card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+                    </svg>
+                </div>
+                <h3>Autenticación Segura</h3>
+                <p>Protege tus datos con OAuth 2.0 y tokens Bearer de larga duración.</p>
+            </div>
+            <div class="info-card">
+                <div class="info-card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                        <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+                    </svg>
+                </div>
+                <h3>Tiempo Real</h3>
+                <p>Envía y recibe mensajes de WhatsApp en tiempo real con webhooks.</p>
+            </div>
+            <div class="info-card">
+                <div class="info-card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                        <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
+                    </svg>
+                </div>
+                <h3>Versionado</h3>
+                <p>API estable con versionado semántico para actualizaciones sin conflictos.</p>
+            </div>
+        </div>
+    </div>
+
     <div id="swagger-ui"></div>
 
     <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js" crossorigin></script>

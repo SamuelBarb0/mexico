@@ -142,23 +142,54 @@ class TenantController extends Controller
      */
     public function update(Request $request, Tenant $tenant)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:tenants,slug,' . $tenant->id,
-            'billing_email' => 'required|email|max:255',
-            'billing_name' => 'nullable|string|max:255',
-            'status' => 'required|in:active,suspended,inactive',
+            'slug' => 'required|string|max:255|unique:tenants,slug,' . $tenant->id,
+            'domain' => 'nullable|string|max:255',
+            'status' => 'required|in:active,suspended,trial',
+            'timezone' => 'nullable|string|max:255',
+            'language' => 'nullable|string|max:10',
+            'enable_trial' => 'nullable|boolean',
+            'trial_days' => 'nullable|integer|min:1',
         ]);
 
+        // Update basic fields
         $tenant->update([
-            'name' => $request->name,
-            'slug' => $request->slug ?: Str::slug($request->name),
-            'billing_email' => $request->billing_email,
-            'billing_name' => $request->billing_name,
-            'status' => $request->status,
+            'name' => $validated['name'],
+            'slug' => $validated['slug'],
+            'domain' => $validated['domain'] ?? null,
+            'status' => $validated['status'],
         ]);
 
-        return redirect()->route('admin.tenants.show', $tenant)
+        // Update settings (timezone and language)
+        $settings = $tenant->settings ?? [];
+
+        if (isset($validated['timezone'])) {
+            $settings['timezone'] = $validated['timezone'];
+        }
+
+        if (isset($validated['language'])) {
+            $settings['language'] = $validated['language'];
+        }
+
+        $tenant->update(['settings' => $settings]);
+
+        // Handle trial extension/activation
+        if ($request->boolean('enable_trial')) {
+            $trialDays = $validated['trial_days'] ?? 30;
+
+            // If there's an existing trial, extend it
+            if ($tenant->trial_ends_at && $tenant->trial_ends_at->isFuture()) {
+                $newTrialEnd = $tenant->trial_ends_at->addDays($trialDays);
+            } else {
+                // Start a new trial from now
+                $newTrialEnd = now()->addDays($trialDays);
+            }
+
+            $tenant->update(['trial_ends_at' => $newTrialEnd]);
+        }
+
+        return redirect()->route('admin.tenants.index')
             ->with('success', 'Tenant actualizado exitosamente');
     }
 

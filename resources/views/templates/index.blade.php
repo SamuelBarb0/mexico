@@ -53,7 +53,7 @@
             </div>
             <div class="flex gap-3">
                 <!-- Sync from Meta Button -->
-                @if(Auth::user()->tenant->wabaAccounts->count() > 0)
+                @if(Auth::user()->tenant && Auth::user()->tenant->wabaAccounts && Auth::user()->tenant->wabaAccounts->count() > 0)
                     <form action="{{ route('templates.sync-all') }}" method="POST" id="sync-form">
                         @csrf
                         <input type="hidden" name="waba_account_id" value="{{ Auth::user()->tenant->wabaAccounts->first()->id }}">
@@ -66,16 +66,51 @@
                     </form>
                 @endif
 
-                <a href="{{ route('templates.create') }}" class="group relative overflow-hidden bg-white text-secondary-600 px-8 py-4 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center">
-                    <span class="absolute inset-0 bg-gradient-to-r from-secondary-400 to-primary-500 opacity-0 group-hover:opacity-20 transition-opacity"></span>
-                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    <span class="relative z-10">Nueva Plantilla</span>
-                </a>
+                @if(Auth::user()->tenant && Auth::user()->tenant->wabaAccounts && Auth::user()->tenant->wabaAccounts->count() > 0)
+                    <a href="{{ route('templates.create') }}" class="group relative overflow-hidden bg-white text-secondary-600 px-8 py-4 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center">
+                        <span class="absolute inset-0 bg-gradient-to-r from-secondary-400 to-primary-500 opacity-0 group-hover:opacity-20 transition-opacity"></span>
+                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        <span class="relative z-10">Nueva Plantilla</span>
+                    </a>
+                @endif
             </div>
         </div>
     </div>
+
+    <!-- WABA Account Warning -->
+    @if(!Auth::user()->tenant || !Auth::user()->tenant->wabaAccounts || Auth::user()->tenant->wabaAccounts->count() === 0)
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-lg p-6 shadow-lg">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div class="ml-4 flex-1">
+                    <h3 class="text-lg font-bold text-amber-900 mb-2">Cuenta de WhatsApp Business requerida</h3>
+                    <p class="text-amber-800 mb-4">
+                        Para crear y gestionar plantillas de mensajes, necesitas conectar una cuenta de WhatsApp Business API (WABA) primero.
+                    </p>
+                    <div class="bg-white/50 rounded-lg p-4 mb-4">
+                        <h4 class="font-semibold text-amber-900 mb-2">¿Qué necesitas hacer?</h4>
+                        <ul class="list-disc list-inside space-y-1 text-sm text-amber-800">
+                            <li>Registra una cuenta de WhatsApp Business API</li>
+                            <li>Conecta tu cuenta WABA a esta plataforma</li>
+                            <li>Una vez conectada, podrás crear y sincronizar plantillas</li>
+                        </ul>
+                    </div>
+                    <a href="{{ route('waba-accounts.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Conectar Cuenta WABA
+                    </a>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <!-- Filters -->
     <div class="bg-white/70 backdrop-blur-sm rounded-xl shadow-soft p-6 border border-primary-100">
@@ -124,13 +159,28 @@
                     </svg>
                 </div>
                 <h3 class="text-2xl font-bold text-gray-800 mb-2">No hay plantillas registradas</h3>
-                <p class="text-gray-600 mb-6">Comienza creando tu primera plantilla de mensaje</p>
-                <a href="{{ route('templates.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-secondary-600 to-primary-600 hover:from-secondary-700 hover:to-primary-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Crear Primera Plantilla
-                </a>
+                <p class="text-gray-600 mb-6">
+                    @if(Auth::user()->tenant && Auth::user()->tenant->wabaAccounts && Auth::user()->tenant->wabaAccounts->count() > 0)
+                        Comienza creando tu primera plantilla de mensaje
+                    @else
+                        Primero conecta una cuenta WABA para crear plantillas
+                    @endif
+                </p>
+                @if(Auth::user()->tenant && Auth::user()->tenant->wabaAccounts && Auth::user()->tenant->wabaAccounts->count() > 0)
+                    <a href="{{ route('templates.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-secondary-600 to-primary-600 hover:from-secondary-700 hover:to-primary-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Crear Primera Plantilla
+                    </a>
+                @else
+                    <a href="{{ route('waba-accounts.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Conectar Cuenta WABA
+                    </a>
+                @endif
             </div>
         @else
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
