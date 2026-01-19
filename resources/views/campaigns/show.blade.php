@@ -37,31 +37,33 @@
                     @endif
                 </div>
             </div>
-            <div class="flex gap-2">
-                <a href="{{ route('campaigns.index') }}" class="bg-white text-purple-600 px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('campaigns.index') }}" class="bg-white text-purple-600 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all cursor-pointer">
                     Volver
                 </a>
 
                 @if(in_array($campaign->status, ['draft', 'scheduled']) && $campaign->total_recipients == 0)
                     <form action="{{ route('campaigns.prepare', $campaign) }}" method="POST" class="inline">
                         @csrf
-                        <button type="submit" class="bg-yellow-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:bg-yellow-600">
+                        <button type="submit" class="bg-yellow-500 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:bg-yellow-600 cursor-pointer whitespace-nowrap">
                             <i class="bi bi-gear"></i> Preparar Campaña
                         </button>
                     </form>
                 @endif
 
-                @if(in_array($campaign->status, ['draft', 'scheduled', 'paused']) && $campaign->total_recipients > 0)
+                @if(in_array($campaign->status, ['draft', 'scheduled', 'paused']) && $campaign->total_recipients > 0 && !in_array($campaign->status, ['active', 'running', 'completed']))
                     <form action="{{ route('campaigns.execute', $campaign) }}" method="POST" class="inline">
                         @csrf
-                        <button type="submit" class="bg-green-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:bg-green-600">
-                            <i class="bi bi-play-circle"></i> Ejecutar Campaña ({{ number_format($campaign->total_recipients) }} mensajes)
+                        <button type="submit" class="bg-green-500 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:bg-green-600 cursor-pointer">
+                            <i class="bi bi-play-circle"></i>
+                            <span class="hidden sm:inline">Ejecutar Campaña ({{ number_format($campaign->total_recipients) }} mensajes)</span>
+                            <span class="sm:hidden">Ejecutar ({{ number_format($campaign->total_recipients) }})</span>
                         </button>
                     </form>
                 @endif
 
                 @if($campaign->total_recipients > 0)
-                    <a href="{{ route('campaigns.metrics', $campaign) }}" class="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:bg-blue-600">
+                    <a href="{{ route('campaigns.metrics', $campaign) }}" class="bg-blue-500 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:bg-blue-600 cursor-pointer whitespace-nowrap">
                         <i class="bi bi-bar-chart"></i> Ver Métricas
                     </a>
                 @endif
@@ -244,15 +246,15 @@
                     @if($campaign->status === 'draft' && $campaign->total_recipients == 0)
                         <form action="{{ route('campaigns.prepare', $campaign) }}" method="POST">
                             @csrf
-                            <button type="submit" class="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition shadow-lg">
+                            <button type="submit" class="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition shadow-lg cursor-pointer">
                                 Preparar Campaña
                             </button>
                         </form>
                         <p class="text-xs text-gray-600">Genera mensajes individuales para todos los contactos</p>
                     @endif
 
-                    @if($campaign->status === 'draft')
-                        <a href="{{ route('campaigns.edit', $campaign) }}" class="block w-full px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold text-center transition shadow-lg">
+                    @if($campaign->status === 'draft' && !$campaign->started_at)
+                        <a href="{{ route('campaigns.edit', $campaign) }}" class="block w-full px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold text-center transition shadow-lg cursor-pointer">
                             Editar Campaña
                         </a>
                     @endif

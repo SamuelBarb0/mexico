@@ -60,15 +60,20 @@ class RegisterController extends Controller
             ]);
 
             // 3. Buscar el plan gratuito o de prueba
-            $trialPlan = SubscriptionPlan::where('price', 0)
+            $trialPlan = SubscriptionPlan::where(function($query) {
+                    $query->where('price_monthly', 0)
+                          ->where('price_yearly', 0);
+                })
                 ->orWhere('name', 'like', '%trial%')
                 ->orWhere('name', 'like', '%free%')
+                ->orWhere('has_trial', true)
+                ->where('is_active', true)
                 ->first();
 
             // Si no hay plan gratuito, usar el plan básico
             if (!$trialPlan) {
                 $trialPlan = SubscriptionPlan::where('is_active', true)
-                    ->orderBy('price')
+                    ->orderBy('price_monthly')
                     ->first();
             }
 

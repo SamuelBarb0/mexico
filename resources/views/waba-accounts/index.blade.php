@@ -5,25 +5,25 @@
 @section('content')
 <div class="space-y-6">
     <!-- Header con gradiente -->
-    <div class="relative overflow-hidden bg-gradient-to-r from-amber-600 via-orange-600 to-orange-700 rounded-2xl shadow-2xl p-8">
+    <div class="relative overflow-hidden bg-gradient-to-r from-amber-600 via-orange-600 to-orange-700 rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8">
         <div class="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
         <div class="absolute bottom-0 left-0 -mb-8 -ml-8 w-48 h-48 bg-white opacity-10 rounded-full blur-3xl"></div>
-        <div class="relative z-10 flex justify-between items-center">
-            <div>
-                <h1 class="text-4xl font-extrabold text-white mb-2 flex items-center">
-                    <svg class="w-10 h-10 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex-1">
+                <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-1 sm:mb-2 flex items-center">
+                    <svg class="w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 mr-2 sm:mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
                     </svg>
-                    WABA Accounts
+                    <span class="truncate">WABA Accounts</span>
                 </h1>
-                <p class="text-amber-100 text-lg">Administra tus cuentas de WhatsApp Business API</p>
+                <p class="text-amber-100 text-sm sm:text-base lg:text-lg">Administra tus cuentas de WhatsApp Business API</p>
             </div>
-            <a href="{{ route('waba-accounts.create') }}" class="group relative overflow-hidden bg-white text-amber-600 px-8 py-4 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center">
+            <a href="{{ route('waba-accounts.create') }}" class="group relative overflow-hidden bg-white text-amber-600 px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 lg:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center cursor-pointer w-full sm:w-auto justify-center">
                 <span class="absolute inset-0 bg-gradient-to-r from-amber-400 to-orange-500 opacity-0 group-hover:opacity-20 transition-opacity"></span>
-                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
-                <span class="relative z-10">Nueva Cuenta WABA</span>
+                <span class="relative z-10 truncate">Nueva Cuenta WABA</span>
             </a>
         </div>
     </div>

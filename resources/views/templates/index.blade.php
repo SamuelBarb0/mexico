@@ -38,41 +38,41 @@
     @endif
 
     <!-- Header -->
-    <div class="relative overflow-hidden bg-gradient-to-r from-secondary-600 via-secondary-700 to-primary-700 rounded-2xl shadow-2xl p-8">
+    <div class="relative overflow-hidden bg-gradient-to-r from-secondary-600 via-secondary-700 to-primary-700 rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8">
         <div class="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
         <div class="absolute bottom-0 left-0 -mb-8 -ml-8 w-48 h-48 bg-white opacity-10 rounded-full blur-3xl"></div>
-        <div class="relative z-10 flex justify-between items-center">
-            <div>
-                <h1 class="text-4xl font-extrabold text-white mb-2 flex items-center">
-                    <svg class="w-10 h-10 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex-1">
+                <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-1 sm:mb-2 flex items-center">
+                    <svg class="w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 mr-2 sm:mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
                     </svg>
-                    Plantillas de Mensajes
+                    <span class="truncate">Plantillas de Mensajes</span>
                 </h1>
-                <p class="text-secondary-100 text-lg">Gestiona tus plantillas aprobadas por Meta</p>
+                <p class="text-secondary-100 text-sm sm:text-base lg:text-lg">Gestiona tus plantillas aprobadas por Meta</p>
             </div>
-            <div class="flex gap-3">
+            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <!-- Sync from Meta Button -->
                 @if(Auth::user()->tenant && Auth::user()->tenant->wabaAccounts && Auth::user()->tenant->wabaAccounts->count() > 0)
                     <form action="{{ route('templates.sync-all') }}" method="POST" id="sync-form">
                         @csrf
                         <input type="hidden" name="waba_account_id" value="{{ Auth::user()->tenant->wabaAccounts->first()->id }}">
-                        <button type="submit" class="group relative overflow-hidden bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 px-6 py-4 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center hover:bg-white/20">
-                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button type="submit" class="group relative overflow-hidden bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 px-4 sm:px-6 lg:px-6 py-2.5 sm:py-3 lg:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center hover:bg-white/20 cursor-pointer w-full sm:w-auto justify-center">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                             </svg>
-                            <span class="relative z-10">Sincronizar desde Meta</span>
+                            <span class="relative z-10 truncate">Sincronizar desde Meta</span>
                         </button>
                     </form>
                 @endif
 
                 @if(Auth::user()->tenant && Auth::user()->tenant->wabaAccounts && Auth::user()->tenant->wabaAccounts->count() > 0)
-                    <a href="{{ route('templates.create') }}" class="group relative overflow-hidden bg-white text-secondary-600 px-8 py-4 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center">
+                    <a href="{{ route('templates.create') }}" class="group relative overflow-hidden bg-white text-secondary-600 px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 lg:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center cursor-pointer w-full sm:w-auto justify-center">
                         <span class="absolute inset-0 bg-gradient-to-r from-secondary-400 to-primary-500 opacity-0 group-hover:opacity-20 transition-opacity"></span>
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>
-                        <span class="relative z-10">Nueva Plantilla</span>
+                        <span class="relative z-10 truncate">Nueva Plantilla</span>
                     </a>
                 @endif
             </div>

@@ -17,6 +17,7 @@ use App\Http\Controllers\MessageTemplateController;
 use App\Http\Controllers\ContactImportController;
 use App\Http\Controllers\InboxController;
 use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -47,6 +48,11 @@ Route::get('/api-docs/openapi.json', function () {
 // Rutas protegidas con autenticación y validación de tenant
 Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Perfil de Usuario
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
 
     // Módulo de Clientes
     Route::resource('clients', ClientController::class);
@@ -87,6 +93,8 @@ Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
     // Módulo de WABA Accounts
     Route::get('/waba-accounts', [WabaAccountController::class, 'index'])->name('waba-accounts.index');
     Route::get('/waba-accounts/create', [WabaAccountController::class, 'create'])->name('waba-accounts.create');
+    Route::get('/waba-accounts/create-manual', [WabaAccountController::class, 'createManual'])->name('waba-accounts.create-manual');
+    Route::post('/waba-accounts/facebook/callback', [WabaAccountController::class, 'facebookCallback'])->name('waba-accounts.facebook.callback');
     Route::post('/waba-accounts', [WabaAccountController::class, 'store'])->name('waba-accounts.store')->middleware('subscription.limits:waba_accounts');
     Route::get('/waba-accounts/{waba_account}', [WabaAccountController::class, 'show'])->name('waba-accounts.show');
     Route::get('/waba-accounts/{waba_account}/edit', [WabaAccountController::class, 'edit'])->name('waba-accounts.edit');

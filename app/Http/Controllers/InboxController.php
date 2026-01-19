@@ -23,9 +23,38 @@ class InboxController extends Controller
             return view('inbox.index', compact('conversations'));
         }
 
+        // Base query
+        $query = Contact::where('contacts.tenant_id', $tenant->id)
+            ->whereHas('messages'); // Only contacts with messages
+
+        // Search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Campaign filter
+        if ($request->filled('campaign_filter')) {
+            if ($request->campaign_filter === 'campaign') {
+                // Solo mostrar contactos que tienen mensajes de campañas
+                $query->whereHas('messages', function($q) {
+                    $q->whereNotNull('campaign_id');
+                });
+            } elseif ($request->campaign_filter === 'direct') {
+                // Solo mostrar contactos que NO tienen mensajes de campañas
+                $query->whereHas('messages', function($q) {
+                    $q->whereNull('campaign_id');
+                })->whereDoesntHave('messages', function($q) {
+                    $q->whereNotNull('campaign_id');
+                });
+            }
+        }
+
         // Get contacts with their last message, ordered by most recent
-        $conversations = Contact::where('contacts.tenant_id', $tenant->id)
-            ->whereHas('messages') // Only contacts with messages
+        $conversations = $query
             ->with(['messages' => function ($query) {
                 $query->latest()->limit(1); // Get last message
             }])
@@ -40,7 +69,8 @@ class InboxController extends Controller
                     ->whereColumn('messages.contact_id', 'contacts.id');
             }, 'last_message_at')
             ->orderByDesc('last_message_at')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString(); // Mantener parámetros de búsqueda y filtros
 
         return view('inbox.index', compact('conversations'));
     }

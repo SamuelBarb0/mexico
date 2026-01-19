@@ -5,25 +5,25 @@
 @section('content')
 <div class="space-y-6">
     <!-- Header con gradiente -->
-    <div class="relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-700 to-violet-700 rounded-2xl shadow-2xl p-8">
+    <div class="relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-700 to-violet-700 rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8">
         <div class="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
         <div class="absolute bottom-0 left-0 -mb-8 -ml-8 w-48 h-48 bg-white opacity-10 rounded-full blur-3xl"></div>
-        <div class="relative z-10 flex justify-between items-center">
-            <div>
-                <h1 class="text-4xl font-extrabold text-white mb-2 flex items-center">
-                    <svg class="w-10 h-10 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex-1">
+                <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-1 sm:mb-2 flex items-center">
+                    <svg class="w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 mr-2 sm:mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
                     </svg>
-                    Campañas
+                    <span class="truncate">Campañas</span>
                 </h1>
-                <p class="text-purple-100 text-lg">Gestiona tus campañas de mensajería</p>
+                <p class="text-purple-100 text-sm sm:text-base lg:text-lg">Gestiona tus campañas de mensajería</p>
             </div>
-            <a href="{{ route('campaigns.create') }}" class="group relative overflow-hidden bg-white text-purple-600 px-8 py-4 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center">
+            <a href="{{ route('campaigns.create') }}" class="group relative overflow-hidden bg-white text-purple-600 px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 lg:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center cursor-pointer w-full sm:w-auto justify-center">
                 <span class="absolute inset-0 bg-gradient-to-r from-purple-400 to-violet-500 opacity-0 group-hover:opacity-20 transition-opacity"></span>
-                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
-                <span class="relative z-10">Nueva Campaña</span>
+                <span class="relative z-10 truncate">Nueva Campaña</span>
             </a>
         </div>
     </div>
@@ -38,7 +38,7 @@
                 </div>
                 <h3 class="text-2xl font-bold text-gray-800 mb-2">No hay campañas registradas</h3>
                 <p class="text-gray-600 mb-6">Comienza creando tu primera campaña</p>
-                <a href="{{ route('campaigns.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                <a href="{{ route('campaigns.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 cursor-pointer">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>

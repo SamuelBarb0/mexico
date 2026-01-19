@@ -3,15 +3,15 @@
 @section('title', 'Chat - ' . ($contact->name ?? $contact->phone))
 
 @section('content')
-<div class="flex h-[calc(100vh-120px)] bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-    <!-- Sidebar - Lista de Conversaciones -->
-    <div class="w-80 border-r border-gray-200 flex flex-col bg-gray-50">
+<div class="flex h-[calc(100vh-120px)] bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+    <!-- Sidebar - Lista de Conversaciones (oculto en móvil) -->
+    <div id="conversationsSidebar" class="hidden lg:flex lg:w-80 border-r border-gray-200 flex-col bg-gray-50">
         <!-- Header Sidebar -->
-        <div class="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600">
+        <div class="p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600">
             <div class="flex items-center justify-between">
-                <h2 class="text-lg font-bold text-white">Conversaciones</h2>
+                <h2 class="text-base sm:text-lg font-bold text-white">Conversaciones</h2>
                 <a href="{{ route('inbox.index') }}" class="text-white hover:text-indigo-100 transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
                 </a>
@@ -65,50 +65,59 @@
     <!-- Área Principal - Chat -->
     <div class="flex-1 flex flex-col">
         <!-- Header del Chat -->
-        <div class="p-4 border-b border-gray-200 bg-white">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
+        <div class="p-3 sm:p-4 border-b border-gray-200 bg-white">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+                    <!-- Botón volver en móviles -->
+                    <a href="{{ route('inbox.index') }}" class="lg:hidden flex-shrink-0 p-2 text-gray-600 hover:text-indigo-600 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </a>
+
                     <!-- Avatar del contacto -->
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-lg flex-shrink-0">
                         {{ substr($contact->name ?? 'U', 0, 1) }}
                     </div>
+
                     <!-- Info del contacto -->
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-900">
+                    <div class="min-w-0 flex-1">
+                        <h3 class="text-sm sm:text-base lg:text-lg font-bold text-gray-900 truncate">
                             {{ $contact->name ?? 'Sin nombre' }}
                         </h3>
-                        <p class="text-sm text-gray-500">{{ $contact->phone }}</p>
+                        <p class="text-xs sm:text-sm text-gray-500 truncate">{{ $contact->phone }}</p>
                     </div>
                 </div>
+
                 <!-- Acciones -->
-                <div class="flex items-center space-x-2">
-                    <a href="{{ route('contacts.show', $contact) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <a href="{{ route('contacts.show', $contact) }}" class="inline-flex items-center px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition cursor-pointer">
+                        <svg class="w-4 h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                         </svg>
-                        Ver Perfil
+                        <span class="hidden sm:inline text-sm">Ver Perfil</span>
                     </a>
                 </div>
             </div>
         </div>
 
         <!-- Mensajes -->
-        <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white">
+        <div class="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 bg-gradient-to-b from-gray-50 to-white">
             @if($messages->isEmpty())
-                <div class="flex flex-col items-center justify-center h-full">
-                    <svg class="w-24 h-24 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex flex-col items-center justify-center h-full px-4">
+                    <svg class="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                     </svg>
-                    <p class="text-gray-500 text-lg">No hay mensajes en esta conversación</p>
+                    <p class="text-gray-500 text-sm sm:text-base lg:text-lg text-center">No hay mensajes en esta conversación</p>
                 </div>
             @else
                 @foreach($messages as $message)
                     <div class="flex {{ $message->direction === 'outbound' ? 'justify-end' : 'justify-start' }}">
-                        <div class="max-w-md">
+                        <div class="max-w-[85%] sm:max-w-md lg:max-w-lg">
                             <!-- Bubble -->
-                            <div class="rounded-2xl shadow-md p-4 {{ $message->direction === 'outbound' ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' : 'bg-white text-gray-900' }}">
+                            <div class="rounded-2xl shadow-md p-3 sm:p-4 {{ $message->direction === 'outbound' ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' : 'bg-white text-gray-900' }}">
                                 <!-- Header del mensaje -->
-                                <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center justify-between mb-1.5 sm:mb-2">
                                     <span class="text-xs font-semibold {{ $message->direction === 'outbound' ? 'text-indigo-100' : 'text-gray-500' }}">
                                         {{ $message->direction === 'outbound' ? 'Tú' : ($contact->name ?? $contact->phone) }}
                                     </span>
@@ -118,22 +127,22 @@
                                 </div>
 
                                 <!-- Contenido del mensaje -->
-                                <div class="text-sm leading-relaxed">
+                                <div class="text-sm sm:text-base leading-relaxed break-words">
                                     {{ $message->content ?? 'Mensaje de plantilla' }}
                                 </div>
 
                                 <!-- Footer con info del mensaje -->
-                                <div class="mt-2 flex items-center justify-between text-xs {{ $message->direction === 'outbound' ? 'text-indigo-200' : 'text-gray-500' }}">
+                                <div class="mt-2 flex items-center justify-between flex-wrap gap-2 text-xs {{ $message->direction === 'outbound' ? 'text-indigo-200' : 'text-gray-500' }}">
                                     <div class="flex items-center space-x-1">
                                         @if($message->campaign)
                                             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                                                 <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/>
                                             </svg>
-                                            <span>Campaña</span>
+                                            <span class="hidden sm:inline">Campaña</span>
                                         @endif
 
                                         @if($message->messageTemplate)
-                                            <span class="ml-2">📋 {{ $message->messageTemplate->name }}</span>
+                                            <span class="ml-2 truncate max-w-[120px] sm:max-w-none">📋 <span class="hidden sm:inline">{{ $message->messageTemplate->name }}</span></span>
                                         @endif
                                     </div>
 
@@ -141,29 +150,29 @@
                                     @if($message->direction === 'outbound')
                                         <div class="flex items-center space-x-1">
                                             @if($message->status === 'sent')
-                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                                 </svg>
                                             @elseif($message->status === 'delivered')
-                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                                 </svg>
-                                                <svg class="w-4 h-4 -ml-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <svg class="w-3 h-3 sm:w-4 sm:h-4 -ml-1.5 sm:-ml-2" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                                 </svg>
                                             @elseif($message->status === 'read')
-                                                <svg class="w-4 h-4 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
+                                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                                 </svg>
-                                                <svg class="w-4 h-4 text-blue-300 -ml-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-blue-300 -ml-1.5 sm:-ml-2" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                                 </svg>
                                             @elseif($message->status === 'failed')
-                                                <svg class="w-4 h-4 text-red-300" fill="currentColor" viewBox="0 0 20 20">
+                                                <svg class="w-3 h-3 sm:w-4 sm:h-4 text-red-300" fill="currentColor" viewBox="0 0 20 20">
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                                                 </svg>
                                             @endif
-                                            <span class="ml-1">{{ ucfirst($message->status) }}</span>
+                                            <span class="ml-1 text-xs hidden sm:inline">{{ ucfirst($message->status) }}</span>
                                         </div>
                                     @endif
                                 </div>
@@ -254,9 +263,9 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
 
-                // Obtener el contenedor de mensajes del nuevo HTML
-                const newMessagesContainer = doc.querySelector('.flex-1.overflow-y-auto.p-6.space-y-4');
-                const currentMessagesContainer = document.querySelector('.flex-1.overflow-y-auto.p-6.space-y-4');
+                // Obtener el contenedor de mensajes del nuevo HTML (usar selector más específico)
+                const newMessagesContainer = doc.querySelector('.overflow-y-auto.bg-gradient-to-b');
+                const currentMessagesContainer = document.querySelector('.overflow-y-auto.bg-gradient-to-b');
 
                 if (newMessagesContainer && currentMessagesContainer) {
                     // Guardar la posición de scroll actual
@@ -296,7 +305,7 @@
         console.log('✓ Auto-refresh de chat activado - actualizando cada 5 segundos (sin recargar página)');
 
         // Scroll inicial al final de los mensajes
-        const messagesContainer = document.querySelector('.flex-1.overflow-y-auto.p-6.space-y-4');
+        const messagesContainer = document.querySelector('.overflow-y-auto.bg-gradient-to-b');
         if (messagesContainer) {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }

@@ -215,27 +215,35 @@
                 </nav>
 
                 <!-- User Menu -->
-                <div class="px-5 py-5 border-t border-white/10 bg-black/10">
-                    <div class="mb-4">
-                        <div class="flex items-center space-x-3">
-                            <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-md rounded-xl flex items-center justify-center text-white font-bold shadow-lg border border-white/20 text-lg">
+                <div class="px-3 sm:px-5 py-4 sm:py-5 border-t border-white/10 bg-black/10">
+                    <div class="mb-3 sm:mb-4">
+                        <div class="flex items-center space-x-2 sm:space-x-3">
+                            <div class="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-white/20 to-white/10 backdrop-blur-md rounded-xl flex items-center justify-center text-white font-bold shadow-lg border border-white/20 text-base sm:text-lg">
                                 {{ substr(auth()->user()->name, 0, 1) }}
                             </div>
                             <div class="min-w-0 flex-1">
-                                <p class="text-sm font-bold text-white truncate">{{ auth()->user()->name }}</p>
-                                <p class="text-xs text-primary-200 truncate">{{ auth()->user()->email }}</p>
+                                <p class="text-xs sm:text-sm font-bold text-white truncate">{{ auth()->user()->name }}</p>
+                                <p class="text-[10px] sm:text-xs text-primary-200 truncate">{{ auth()->user()->email }}</p>
                             </div>
                         </div>
                     </div>
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-xl transition-all duration-200 font-semibold border border-white/20 hover:border-white/30 shadow-lg">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    <div class="space-y-2">
+                        <a href="{{ route('profile.show') }}" class="w-full flex items-center justify-center space-x-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-lg sm:rounded-xl transition-all duration-200 font-semibold text-xs sm:text-sm border border-white/20 hover:border-white/30 shadow-lg cursor-pointer">
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                             </svg>
-                            <span>Cerrar Sesión</span>
-                        </button>
-                    </form>
+                            <span class="truncate">Mi Perfil</span>
+                        </a>
+                        <form action="{{ route('logout') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center justify-center space-x-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-lg sm:rounded-xl transition-all duration-200 font-semibold text-xs sm:text-sm border border-white/20 hover:border-white/30 shadow-lg cursor-pointer">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                <span class="truncate">Cerrar Sesión</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </aside>

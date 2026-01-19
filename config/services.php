@@ -49,4 +49,11 @@ return [
         'webhook_verify_token' => env('META_WEBHOOK_VERIFY_TOKEN'),
     ],
 
+    'facebook' => [
+        'app_id' => env('FACEBOOK_APP_ID'),
+        'app_secret' => env('FACEBOOK_APP_SECRET'),
+        'config_id' => env('FACEBOOK_CONFIG_ID'),
+        'api_version' => env('FACEBOOK_API_VERSION', 'v18.0'),
+    ],
+
 ];
