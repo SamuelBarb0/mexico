@@ -38,10 +38,17 @@ class WhatsAppService
             ],
         ];
 
-        // Add template components with variables if provided
-        if (!empty($variables)) {
-            $payload['template']['components'] = $this->buildTemplateComponents($template, $variables);
+        // Build template components - only add if there are actual parameters
+        $components = $this->buildTemplateComponents($template, $variables);
+        if (!empty($components)) {
+            $payload['template']['components'] = $components;
         }
+
+        Log::info('WhatsApp API payload', [
+            'phone_number' => $phoneNumber,
+            'template' => $template->name,
+            'payload' => $payload,
+        ]);
 
         try {
             $response = Http::withToken($accessToken)
@@ -102,10 +109,11 @@ class WhatsAppService
         // Normalize components to object format if they come as array from Meta
         $normalized = $this->normalizeComponents($templateComponents);
 
-        Log::debug('Building template components', [
+        Log::info('Building template components', [
             'template' => $template->name,
-            'variables' => $variables,
+            'raw_components' => $templateComponents,
             'normalized' => $normalized,
+            'variables_received' => $variables,
         ]);
 
         // Process HEADER component if it has variables
@@ -119,15 +127,18 @@ class WhatsAppService
                 if (!empty($headerVariables)) {
                     $parameters = [];
                     foreach ($headerVariables as $varIndex) {
-                        if (isset($variables["header_{$varIndex}"])) {
+                        // Use provided variable or empty string as fallback
+                        $value = $variables["header_{$varIndex}"] ?? '';
+                        if ($value !== '') {
                             $parameters[] = [
                                 'type' => 'text',
-                                'text' => $variables["header_{$varIndex}"],
+                                'text' => (string) $value,
                             ];
                         }
                     }
 
-                    if (!empty($parameters)) {
+                    // Only add header component if we have ALL required parameters
+                    if (count($parameters) === count($headerVariables)) {
                         $components[] = [
                             'type' => 'header',
                             'parameters' => $parameters,
@@ -135,9 +146,9 @@ class WhatsAppService
                     }
                 }
             } elseif (in_array($format, ['IMAGE', 'VIDEO', 'DOCUMENT'])) {
-                // Handle media headers
+                // Handle media headers - required if template has media header
                 $mediaType = strtolower($format);
-                if (isset($variables["header_media_url"])) {
+                if (isset($variables["header_media_url"]) && !empty($variables["header_media_url"])) {
                     $components[] = [
                         'type' => 'header',
                         'parameters' => [
@@ -153,27 +164,41 @@ class WhatsAppService
             }
         }
 
-        // Process BODY component (required)
+        // Process BODY component (required if template has variables)
         if (isset($normalized['body'])) {
             $bodyText = $normalized['body']['text'] ?? '';
             $bodyVariables = $this->extractVariablesFromText($bodyText);
 
+            Log::info('Body variables extracted', [
+                'body_text' => $bodyText,
+                'variables_found' => $bodyVariables,
+            ]);
+
             if (!empty($bodyVariables)) {
                 $parameters = [];
                 foreach ($bodyVariables as $varIndex) {
-                    if (isset($variables["body_{$varIndex}"])) {
+                    // Use provided variable or empty string as fallback
+                    $value = $variables["body_{$varIndex}"] ?? '';
+                    if ($value !== '') {
                         $parameters[] = [
                             'type' => 'text',
-                            'text' => $variables["body_{$varIndex}"],
+                            'text' => (string) $value,
                         ];
                     }
                 }
 
-                if (!empty($parameters)) {
+                // Only add body component if we have ALL required parameters
+                if (count($parameters) === count($bodyVariables)) {
                     $components[] = [
                         'type' => 'body',
                         'parameters' => $parameters,
                     ];
+                } else {
+                    Log::warning('Missing body variables', [
+                        'required' => count($bodyVariables),
+                        'provided' => count($parameters),
+                        'variables_needed' => $bodyVariables,
+                    ]);
                 }
             }
         }
@@ -186,11 +211,11 @@ class WhatsAppService
 
                 if ($buttonType === 'URL' && strpos($buttonUrl, '{{1}}') !== false) {
                     // Dynamic URL button
-                    if (isset($variables["button_{$index}_url"])) {
+                    if (isset($variables["button_{$index}_url"]) && !empty($variables["button_{$index}_url"])) {
                         $components[] = [
                             'type' => 'button',
                             'sub_type' => 'url',
-                            'index' => $index,
+                            'index' => (string) $index,
                             'parameters' => [
                                 [
                                     'type' => 'text',

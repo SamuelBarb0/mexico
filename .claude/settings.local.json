@@ -19,7 +19,8 @@
       "Bash(php -l:*)",
       "Bash(php -r:*)",
       "Bash(composer show:*)",
-      "Bash(del \"c:\\\\xampp\\\\htdocs\\\\mexico\\\\database\\\\migrations\\\\2026_01_07_174159_create_contacts_table.php\")"
+      "Bash(del \"c:\\\\xampp\\\\htdocs\\\\mexico\\\\database\\\\migrations\\\\2026_01_07_174159_create_contacts_table.php\")",
+      "Bash(php check_template.php:*)"
     ],
     "deny": [],
     "ask": []
