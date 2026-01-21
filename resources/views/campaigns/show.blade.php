@@ -355,7 +355,11 @@ function startCampaignExecution() {
     document.getElementById('progressModal').classList.add('flex');
     document.getElementById('executeButton').disabled = true;
 
-    // Iniciar envío en segundo plano
+    // Iniciar envío y polling
+    sendNextBatch();
+}
+
+function sendNextBatch() {
     fetch('{{ route('campaigns.execute', $campaign) }}', {
         method: 'POST',
         headers: {
@@ -371,12 +375,20 @@ function startCampaignExecution() {
         }
         return response.json();
     }).then(data => {
-        // Iniciar polling para actualizar progreso
-        startProgressPolling();
+        // Actualizar progreso
+        updateProgress();
+
+        // Si hay más mensajes pendientes, enviar siguiente batch
+        if (data.remaining > 0 && !data.completed) {
+            // Pequeña pausa antes del siguiente batch
+            setTimeout(sendNextBatch, 1000);
+        }
     }).catch(error => {
         console.error('Error:', error);
-        alert('Error al ejecutar la campaña: ' + error.message);
-        closeProgressModal();
+        // Intentar continuar si hay error temporal
+        setTimeout(() => {
+            updateProgress();
+        }, 2000);
     });
 }
 

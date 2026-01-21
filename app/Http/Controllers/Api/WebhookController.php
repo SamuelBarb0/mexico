@@ -20,7 +20,7 @@ class WebhookController extends BaseApiController
         $token = $request->query('hub_verify_token');
         $challenge = $request->query('hub_challenge');
 
-        $verifyToken = config('services.whatsapp.webhook_verify_token');
+        $verifyToken = config('services.meta.webhook_verify_token');
 
         if ($mode === 'subscribe' && $token === $verifyToken) {
             Log::info('Webhook verified successfully');

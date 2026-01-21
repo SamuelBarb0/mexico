@@ -305,7 +305,7 @@ class CampaignController extends Controller
     }
 
     /**
-     * Execute campaign by dispatching jobs to send messages
+     * Execute campaign by sending messages synchronously
      */
     public function execute(Request $request, Campaign $campaign)
     {
@@ -339,45 +339,57 @@ class CampaignController extends Controller
             return back()->withErrors(['error' => 'No hay mensajes pendientes. Prepara la campaña primero.']);
         }
 
-        // Dispatch job to queue
-        \Log::info('Despachando job SendCampaignMessagesJob', [
+        // Mark campaign as active
+        if ($campaign->status !== 'active') {
+            $campaign->update([
+                'status' => 'active',
+                'started_at' => $campaign->started_at ?? now(),
+            ]);
+        }
+
+        // Execute one batch synchronously (works on shared hosting without queue worker)
+        \Log::info('Ejecutando batch de mensajes de forma síncrona', [
             'campaign_id' => $campaign->id,
-            'batch_size' => 50,
+            'batch_size' => 20, // Smaller batch for faster response
         ]);
 
-        SendCampaignMessagesJob::dispatch($campaign, 50);
+        try {
+            // Execute one batch synchronously
+            SendCampaignMessagesJob::runSynchronously($campaign, 20);
 
-        // Process the queue in background
-        \Log::info('Iniciando procesamiento de queue en segundo plano...');
+            // Check remaining messages
+            $remaining = $campaign->messages()->where('status', 'PENDING')->count();
 
-        // Check if request is AJAX
-        if ($request->expectsJson() || $request->wantsJson()) {
-            // Start queue processing in background
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                // Windows - ejecutar en segundo plano
-                pclose(popen("start /B php artisan queue:work --once --tries=3 2>&1", "r"));
-            } else {
-                // Linux/Unix
-                exec("php artisan queue:work --once --tries=3 > /dev/null 2>&1 &");
+            \Log::info('Batch completado', [
+                'campaign_id' => $campaign->id,
+                'remaining' => $remaining,
+            ]);
+
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $remaining > 0 ? 'Batch enviado, continuando...' : 'Campaña completada',
+                    'remaining' => $remaining,
+                    'completed' => $remaining === 0,
+                ]);
             }
 
-            \Log::info('=== FIN: Job despachado, procesamiento iniciado ===');
-            return response()->json(['success' => true, 'message' => 'Campaña en ejecución']);
-        }
+            return redirect()->route('campaigns.show', $campaign)
+                ->with('success', 'Campaña ejecutada exitosamente.');
 
-        // Si no es AJAX (fallback), procesar sincrónicamente
-        try {
-            \Artisan::call('queue:work', [
-                '--once' => true,
-                '--tries' => 3,
-            ]);
         } catch (\Exception $e) {
-            \Log::warning('Error procesando queue:', ['error' => $e->getMessage()]);
-        }
+            \Log::error('Error ejecutando campaña:', [
+                'campaign_id' => $campaign->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
-        \Log::info('=== FIN: Job despachado y procesado ===');
-        return redirect()->route('campaigns.show', $campaign)
-            ->with('success', 'Campaña ejecutada exitosamente.');
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Error al ejecutar la campaña: ' . $e->getMessage()], 500);
+            }
+
+            return back()->withErrors(['error' => 'Error al ejecutar la campaña: ' . $e->getMessage()]);
+        }
     }
 
     /**

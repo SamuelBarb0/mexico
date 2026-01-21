@@ -19,18 +19,29 @@ class SendCampaignMessagesJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
-    public $timeout = 120;
+    public $timeout = 600; // 10 minutes for large campaigns
 
     protected Campaign $campaign;
     protected int $batchSize;
+    protected bool $runSync;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(Campaign $campaign, int $batchSize = 50)
+    public function __construct(Campaign $campaign, int $batchSize = 50, bool $runSync = false)
     {
         $this->campaign = $campaign;
         $this->batchSize = $batchSize;
+        $this->runSync = $runSync;
+    }
+
+    /**
+     * Create and run synchronously (for shared hosting)
+     */
+    public static function runSynchronously(Campaign $campaign, int $batchSize = 50): void
+    {
+        $job = new self($campaign, $batchSize, true);
+        app()->call([$job, 'handle']);
     }
 
     /**
@@ -188,9 +199,18 @@ class SendCampaignMessagesJob implements ShouldQueue
             ->count();
 
         if ($remainingMessages > 0) {
-            // Dispatch another job for the next batch
-            SendCampaignMessagesJob::dispatch($this->campaign, $this->batchSize)
-                ->delay(now()->addSeconds(10)); // Delay 10 seconds between batches
+            if ($this->runSync) {
+                // Running synchronously - just log, let controller handle next batch call
+                Log::info('Sync batch completed, remaining messages', [
+                    'campaign_id' => $this->campaign->id,
+                    'remaining' => $remainingMessages,
+                ]);
+                // Don't recurse - let the frontend call again for next batch
+            } else {
+                // Dispatch another job for the next batch (async mode)
+                SendCampaignMessagesJob::dispatch($this->campaign, $this->batchSize)
+                    ->delay(now()->addSeconds(10));
+            }
         } else {
             // All messages processed, check if campaign is complete
             $this->checkCampaignCompletion();
