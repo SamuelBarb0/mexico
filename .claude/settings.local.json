@@ -16,7 +16,10 @@
       "Bash(php verify_limits.php:*)",
       "Bash(composer config:*)",
       "Bash(del \"c:\\\\xampp\\\\htdocs\\\\mexico\\\\database\\\\migrations\\\\2026_01_21_170239_add_is_primary_to_clients_table.php\")",
-      "Bash(php -l:*)"
+      "Bash(php -l:*)",
+      "Bash(php -r:*)",
+      "Bash(composer show:*)",
+      "Bash(del \"c:\\\\xampp\\\\htdocs\\\\mexico\\\\database\\\\migrations\\\\2026_01_07_174159_create_contacts_table.php\")"
     ],
     "deny": [],
     "ask": []

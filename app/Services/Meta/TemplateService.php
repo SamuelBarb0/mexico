@@ -232,6 +232,12 @@ class TemplateService
 
             // Sync templates from Meta
             foreach ($result['data'] as $metaTemplate) {
+                // Log the raw components from Meta for debugging
+                Log::info('Meta template components', [
+                    'name' => $metaTemplate['name'],
+                    'components' => $metaTemplate['components'],
+                ]);
+
                 // Use updateOrCreate to avoid duplicates
                 $template = MessageTemplate::updateOrCreate(
                     [

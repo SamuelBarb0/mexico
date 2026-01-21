@@ -26,12 +26,52 @@
             'components' => $t->components,
             'header_type' => $t->getHeaderType(),
             'has_media_header' => $t->hasMediaHeader(),
+            'is_carousel' => $t->isCarousel(),
+            'has_catalog' => $t->hasCatalog(),
         ])) }},
         variableMapping: {},
         targetType: 'client',
         selectedClientId: '{{ $defaultClient?->id ?? '' }}',
         getSelectedTemplate() {
             return this.templates.find(t => t.id == this.selectedTemplate);
+        },
+        // Helper functions to handle both Meta array format and object format
+        isArrayFormat(components) {
+            if (!components) return false;
+            return Array.isArray(components) && components.length > 0 && components[0]?.type;
+        },
+        getComponent(components, type) {
+            if (!components) return null;
+            if (this.isArrayFormat(components)) {
+                return components.find(c => c.type === type);
+            }
+            return components[type.toLowerCase()] || null;
+        },
+        getHeaderText(template) {
+            if (!template?.components) return null;
+            const header = this.getComponent(template.components, 'HEADER');
+            if (header?.format === 'TEXT' && header?.text) return header.text;
+            return null;
+        },
+        getBodyText(template) {
+            if (!template?.components) return 'Sin contenido';
+            const body = this.getComponent(template.components, 'BODY');
+            return body?.text || 'Sin contenido de texto';
+        },
+        getFooterText(template) {
+            if (!template?.components) return null;
+            const footer = this.getComponent(template.components, 'FOOTER');
+            return footer?.text || null;
+        },
+        getButtons(template) {
+            if (!template?.components) return [];
+            const buttons = this.getComponent(template.components, 'BUTTONS');
+            return buttons?.buttons || [];
+        },
+        getHeaderFormat(template) {
+            if (!template?.components) return null;
+            const header = this.getComponent(template.components, 'HEADER');
+            return header?.format || null;
         }
     }">
         @csrf
@@ -126,24 +166,150 @@
                         @enderror
 
                         <!-- Template Preview -->
-                        <div x-show="selectedTemplate" class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <template x-for="template in templates" :key="template.id">
-                                <div x-show="selectedTemplate == template.id">
-                                    <p class="text-sm font-semibold text-gray-700 mb-2">Vista Previa:</p>
+                        <div x-show="selectedTemplate" class="mt-4">
+                            <p class="text-sm font-semibold text-gray-700 mb-3">Vista Previa:</p>
 
-                                    <!-- Header Media Indicator -->
-                                    <div x-show="template.has_media_header" class="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
-                                        <span class="text-xs font-semibold text-blue-700">
-                                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                            Esta plantilla requiere <span x-text="template.header_type === 'IMAGE' ? 'una imagen' : (template.header_type === 'VIDEO' ? 'un video' : 'un documento')"></span> en el header
-                                        </span>
+                            <template x-for="template in templates" :key="template.id">
+                                <div x-show="selectedTemplate == template.id" class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 max-w-sm">
+                                    <!-- Header -->
+                                    <template x-if="getHeaderFormat(template)">
+                                        <div class="bg-purple-50 border-b border-gray-200">
+                                            <!-- Text Header -->
+                                            <template x-if="getHeaderFormat(template) === 'TEXT'">
+                                                <div class="p-3">
+                                                    <p class="font-bold text-gray-900 text-sm" x-text="getHeaderText(template)"></p>
+                                                </div>
+                                            </template>
+                                            <!-- Image Header -->
+                                            <template x-if="getHeaderFormat(template) === 'IMAGE'">
+                                                <div class="h-32 bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                                                    <div class="text-center">
+                                                        <svg class="w-10 h-10 text-blue-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                        </svg>
+                                                        <p class="text-xs text-blue-600 font-semibold">IMAGEN</p>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <!-- Video Header -->
+                                            <template x-if="getHeaderFormat(template) === 'VIDEO'">
+                                                <div class="h-32 bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center">
+                                                    <div class="text-center">
+                                                        <svg class="w-10 h-10 text-red-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                                        </svg>
+                                                        <p class="text-xs text-red-600 font-semibold">VIDEO</p>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <!-- Document Header -->
+                                            <template x-if="getHeaderFormat(template) === 'DOCUMENT'">
+                                                <div class="h-32 bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center">
+                                                    <div class="text-center">
+                                                        <svg class="w-10 h-10 text-amber-500 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                        </svg>
+                                                        <p class="text-xs text-amber-600 font-semibold">DOCUMENTO</p>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <!-- Location Header -->
+                                            <template x-if="getHeaderFormat(template) === 'LOCATION'">
+                                                <div class="h-32 bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
+                                                    <div class="text-center">
+                                                        <svg class="w-10 h-10 text-green-500 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                        </svg>
+                                                        <p class="text-xs text-green-600 font-semibold">UBICACIÓN</p>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <!-- Carousel Indicator -->
+                                    <template x-if="template.is_carousel">
+                                        <div class="p-3 bg-indigo-50 border-b border-indigo-200">
+                                            <div class="flex items-center gap-2">
+                                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                                                </svg>
+                                                <span class="text-sm font-semibold text-indigo-700">Plantilla tipo Carrusel</span>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- Catalog Indicator -->
+                                    <template x-if="template.has_catalog">
+                                        <div class="p-3 bg-emerald-50 border-b border-emerald-200">
+                                            <div class="flex items-center gap-2">
+                                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                                                </svg>
+                                                <span class="text-sm font-semibold text-emerald-700">Incluye Catálogo de Productos</span>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- Body -->
+                                    <div class="p-3">
+                                        <p class="text-sm text-gray-700 whitespace-pre-wrap" x-text="getBodyText(template)"></p>
                                     </div>
 
-                                    <div class="text-sm text-gray-600 whitespace-pre-wrap" x-text="template.components?.body?.text || 'Sin contenido'"></div>
+                                    <!-- Footer -->
+                                    <template x-if="getFooterText(template)">
+                                        <div class="px-3 pb-3">
+                                            <p class="text-xs text-gray-500" x-text="getFooterText(template)"></p>
+                                        </div>
+                                    </template>
+
+                                    <!-- Buttons -->
+                                    <template x-if="getButtons(template).length > 0">
+                                        <div class="p-3 border-t border-gray-200 space-y-2">
+                                            <template x-for="(button, index) in getButtons(template)" :key="index">
+                                                <div class="w-full px-3 py-2 bg-gray-100 text-purple-600 font-semibold rounded-lg text-sm text-center flex items-center justify-center gap-2">
+                                                    <template x-if="button.type === 'URL'">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                                        </svg>
+                                                    </template>
+                                                    <template x-if="button.type === 'PHONE_NUMBER'">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                                                        </svg>
+                                                    </template>
+                                                    <template x-if="button.type === 'QUICK_REPLY'">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                                        </svg>
+                                                    </template>
+                                                    <template x-if="button.type === 'COPY_CODE'">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                                                        </svg>
+                                                    </template>
+                                                    <span x-text="button.text"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
+
+                            <!-- Media Header Warning -->
+                            <div x-show="getSelectedTemplate()?.has_media_header" class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <p class="text-sm text-blue-700">
+                                        Esta plantilla requiere
+                                        <span x-text="getSelectedTemplate()?.header_type === 'IMAGE' ? 'una imagen' : (getSelectedTemplate()?.header_type === 'VIDEO' ? 'un video' : (getSelectedTemplate()?.header_type === 'DOCUMENT' ? 'un documento' : 'una ubicación'))"></span>
+                                        en el header. Deberás proporcionar la URL abajo.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Header Media URL (shown when template has media header) -->

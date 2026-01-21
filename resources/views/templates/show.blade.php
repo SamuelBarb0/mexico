@@ -30,87 +30,111 @@
             <div class="bg-white/70 backdrop-blur-sm rounded-2xl shadow-soft p-8 border border-primary-100">
                 <h2 class="text-xl font-display font-bold text-neutral-900 mb-6">Vista Previa</h2>
 
-                <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-neutral-200">
+                {{-- WhatsApp-style chat background --}}
+                <div class="max-w-md mx-auto rounded-xl shadow-lg overflow-hidden border border-neutral-200" style="background-color: #efeae2; background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyBAMAAADsEZWCAAAAElBMVEX////p5uHp5uHo5eDo5eDo5eC5gEN8AAAABXRSTlMAESIzRBQ9aFkAAAA1SURBVDjLY2AYBYMKsLi4gAATAwMTM5QJZDExMzExQZhMYCYTkAnhgJhABowJYsKYI9b2AQAGBgFRK+QAZQAAAABJRU5ErkJggg==');">
                     @php
                         $components = $template->components ?? [];
-                        // Handle both array format (from Meta) and object format (from local creation)
                         $isArrayFormat = isset($components[0]) || (is_array($components) && !empty($components) && isset(array_values($components)[0]['type']));
+
+                        // Extract components for easier access
+                        $headerComponent = null;
+                        $bodyComponent = null;
+                        $footerComponent = null;
+                        $buttonsComponent = null;
+                        $carouselComponent = null;
+                        $otherComponents = [];
+
+                        if ($isArrayFormat) {
+                            foreach ($components as $comp) {
+                                $type = strtoupper($comp['type'] ?? '');
+                                switch ($type) {
+                                    case 'HEADER': $headerComponent = $comp; break;
+                                    case 'BODY': $bodyComponent = $comp; break;
+                                    case 'FOOTER': $footerComponent = $comp; break;
+                                    case 'BUTTONS': $buttonsComponent = $comp; break;
+                                    case 'CAROUSEL': $carouselComponent = $comp; break;
+                                    default: $otherComponents[] = $comp; break;
+                                }
+                            }
+                        }
                     @endphp
 
+                    {{-- Main message bubble --}}
+                    <div class="p-3">
+                        <div class="bg-white rounded-lg shadow-sm overflow-hidden" style="max-width: 85%;">
+
                     @if($isArrayFormat)
-                        {{-- Meta array format: [['type' => 'HEADER', ...], ['type' => 'BODY', ...]] --}}
-                        @foreach($components as $component)
-                            @php $componentType = strtoupper($component['type'] ?? ''); @endphp
+                        {{-- Meta array format - render components in order --}}
 
-                            @if($componentType === 'HEADER')
-                                <div class="p-4 bg-primary-50 border-b border-neutral-200">
-                                    @php $format = strtoupper($component['format'] ?? 'TEXT'); @endphp
-                                    @if($format === 'TEXT')
-                                        <p class="font-bold text-neutral-900">{{ $component['text'] ?? '' }}</p>
-                                    @elseif($format === 'IMAGE')
-                                        <div class="flex items-center justify-center h-32 bg-neutral-100 rounded-lg">
-                                            <div class="text-center">
-                                                <svg class="w-12 h-12 text-neutral-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                                </svg>
-                                                <p class="text-xs text-neutral-500">IMAGEN</p>
-                                            </div>
-                                        </div>
-                                    @elseif($format === 'VIDEO')
-                                        <div class="flex items-center justify-center h-32 bg-neutral-100 rounded-lg">
-                                            <div class="text-center">
-                                                <svg class="w-12 h-12 text-neutral-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                                </svg>
-                                                <p class="text-xs text-neutral-500">VIDEO</p>
-                                            </div>
-                                        </div>
-                                    @elseif($format === 'DOCUMENT')
-                                        <div class="flex items-center justify-center h-32 bg-neutral-100 rounded-lg">
-                                            <div class="text-center">
-                                                <svg class="w-12 h-12 text-neutral-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                </svg>
-                                                <p class="text-xs text-neutral-500">DOCUMENTO</p>
-                                            </div>
-                                        </div>
-                                    @elseif($format === 'LOCATION')
-                                        <div class="flex items-center justify-center h-32 bg-neutral-100 rounded-lg">
-                                            <div class="text-center">
-                                                <svg class="w-12 h-12 text-neutral-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                </svg>
-                                                <p class="text-xs text-neutral-500">UBICACIÓN</p>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <div class="flex items-center justify-center h-32 bg-neutral-100 rounded-lg">
-                                            <div class="text-center">
-                                                <svg class="w-12 h-12 text-neutral-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                                </svg>
-                                                <p class="text-xs text-neutral-500">{{ $format }}</p>
-                                            </div>
-                                        </div>
-                                    @endif
+                        {{-- HEADER --}}
+                        @if($headerComponent)
+                            @php $format = strtoupper($headerComponent['format'] ?? 'TEXT'); @endphp
+                            @if($format === 'TEXT')
+                                <div class="px-3 pt-2">
+                                    <p class="font-bold text-neutral-900 text-[15px]">{{ $headerComponent['text'] ?? '' }}</p>
                                 </div>
-
-                            @elseif($componentType === 'BODY')
-                                <div class="p-4">
-                                    <p class="text-neutral-900 whitespace-pre-wrap">{{ $component['text'] ?? '' }}</p>
+                            @elseif($format === 'IMAGE')
+                                <div class="relative h-40 bg-gradient-to-br from-neutral-200 to-neutral-300 flex items-center justify-center">
+                                    <svg class="w-16 h-16 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
                                 </div>
-
-                            @elseif($componentType === 'FOOTER')
-                                <div class="px-4 pb-4">
-                                    <p class="text-xs text-neutral-500">{{ $component['text'] ?? '' }}</p>
+                            @elseif($format === 'VIDEO')
+                                <div class="relative h-40 bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
+                                    <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
+                                        <svg class="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                    </div>
                                 </div>
+                            @elseif($format === 'DOCUMENT')
+                                <div class="p-3 bg-neutral-100 flex items-center gap-3">
+                                    <div class="w-10 h-12 bg-red-500 rounded flex items-center justify-center">
+                                        <span class="text-white text-xs font-bold">PDF</span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-neutral-700">documento.pdf</p>
+                                        <p class="text-xs text-neutral-500">PDF • Documento</p>
+                                    </div>
+                                </div>
+                            @elseif($format === 'LOCATION')
+                                <div class="relative h-32 bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
+                                    <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                </div>
+                            @else
+                                <div class="relative h-32 bg-gradient-to-br from-neutral-200 to-neutral-300 flex items-center justify-center">
+                                    <svg class="w-12 h-12 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <p class="absolute bottom-2 text-xs text-neutral-500 bg-white/80 px-2 py-0.5 rounded">{{ $format }}</p>
+                                </div>
+                            @endif
+                        @endif
 
-                            @elseif($componentType === 'BUTTONS')
-                                <div class="p-4 border-t border-neutral-200 space-y-2">
-                                    @foreach($component['buttons'] ?? [] as $button)
-                                        <button type="button" class="w-full px-4 py-2 bg-neutral-100 text-primary-600 font-semibold rounded-lg flex items-center justify-center gap-2">
-                                            @php $buttonType = strtoupper($button['type'] ?? ''); @endphp
+                        {{-- BODY --}}
+                        @if($bodyComponent)
+                            <div class="px-3 py-2">
+                                <p class="text-neutral-800 whitespace-pre-wrap text-[14px] leading-relaxed">{{ $bodyComponent['text'] ?? '' }}</p>
+                            </div>
+                        @endif
+
+                        {{-- FOOTER --}}
+                        @if($footerComponent)
+                            <div class="px-3 pb-2">
+                                <p class="text-xs text-neutral-500">{{ $footerComponent['text'] ?? '' }}</p>
+                            </div>
+                        @endif
+
+                        {{-- BUTTONS (non-carousel) --}}
+                        @if($buttonsComponent && !$carouselComponent)
+                            <div class="border-t border-neutral-200">
+                                @foreach($buttonsComponent['buttons'] ?? [] as $button)
+                                    @php $buttonType = strtoupper($button['type'] ?? ''); @endphp
+                                    <div class="px-4 py-2.5 border-b border-neutral-100 last:border-b-0 text-center">
+                                        <span class="text-[#00a884] font-medium text-sm flex items-center justify-center gap-2">
                                             @if($buttonType === 'URL')
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
@@ -129,166 +153,199 @@
                                                 </svg>
                                             @endif
                                             {{ $button['text'] ?? '' }}
-                                        </button>
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        {{-- Close message bubble before carousel --}}
+                        </div>
+                        </div>
+
+                        {{-- CAROUSEL --}}
+                        @if($carouselComponent && isset($carouselComponent['cards']) && count($carouselComponent['cards']) > 0)
+                            <div class="px-3 pb-3 pt-1">
+                                <div class="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory" style="scrollbar-width: thin;">
+                                    @foreach($carouselComponent['cards'] as $index => $card)
+                                        @php
+                                            $cardHeader = collect($card['components'] ?? [])->firstWhere('type', 'HEADER');
+                                            $cardBody = collect($card['components'] ?? [])->firstWhere('type', 'BODY');
+                                            $cardButtons = collect($card['components'] ?? [])->firstWhere('type', 'BUTTONS');
+                                            $cardHeaderFormat = strtoupper($cardHeader['format'] ?? 'IMAGE');
+                                        @endphp
+                                        <div class="flex-shrink-0 w-52 bg-white rounded-xl overflow-hidden shadow-sm snap-start">
+                                            {{-- Card Header (Image/Video) --}}
+                                            <div class="relative h-32 bg-gradient-to-br from-neutral-200 to-neutral-300 flex items-center justify-center">
+                                                @if($cardHeaderFormat === 'IMAGE')
+                                                    <svg class="w-10 h-10 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                    </svg>
+                                                @elseif($cardHeaderFormat === 'VIDEO')
+                                                    <div class="w-10 h-10 rounded-full bg-black/30 flex items-center justify-center">
+                                                        <svg class="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M8 5v14l11-7z"/>
+                                                        </svg>
+                                                    </div>
+                                                @endif
+                                                {{-- Card indicator --}}
+                                                <div class="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                                                    {{ $index + 1 }}/{{ count($carouselComponent['cards']) }}
+                                                </div>
+                                            </div>
+
+                                            {{-- Card Body --}}
+                                            @if($cardBody)
+                                                <div class="px-3 py-2">
+                                                    <p class="text-[13px] text-neutral-800 leading-snug">{{ $cardBody['text'] ?? '' }}</p>
+                                                </div>
+                                            @endif
+
+                                            {{-- Card Buttons --}}
+                                            @if($cardButtons && isset($cardButtons['buttons']))
+                                                <div class="border-t border-neutral-100">
+                                                    @foreach($cardButtons['buttons'] as $btn)
+                                                        <div class="px-3 py-2 text-center border-b border-neutral-100 last:border-b-0">
+                                                            <span class="text-[13px] text-[#00a884] font-medium flex items-center justify-center gap-1">
+                                                                @if(strtoupper($btn['type'] ?? '') === 'URL')
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                                                    </svg>
+                                                                @elseif(strtoupper($btn['type'] ?? '') === 'QUICK_REPLY')
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                                                    </svg>
+                                                                @endif
+                                                                {{ $btn['text'] ?? '' }}
+                                                            </span>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                        </div>
                                     @endforeach
                                 </div>
-
-                            @elseif($componentType === 'CAROUSEL')
-                                <div class="p-4 border-t border-neutral-200">
-                                    <div class="flex items-center gap-2 mb-3">
-                                        <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                                        </svg>
-                                        <span class="font-semibold text-neutral-700">Carrusel</span>
-                                    </div>
-                                    @if(isset($component['cards']))
-                                        <div class="flex gap-2 overflow-x-auto pb-2">
-                                            @foreach($component['cards'] as $index => $card)
-                                                <div class="flex-shrink-0 w-48 bg-neutral-50 rounded-lg border border-neutral-200 overflow-hidden">
-                                                    <div class="h-24 bg-neutral-200 flex items-center justify-center">
-                                                        <span class="text-xs text-neutral-500">Tarjeta {{ $index + 1 }}</span>
-                                                    </div>
-                                                    @if(isset($card['components']))
-                                                        @foreach($card['components'] as $cardComponent)
-                                                            @if(($cardComponent['type'] ?? '') === 'BODY')
-                                                                <div class="p-2">
-                                                                    <p class="text-xs text-neutral-700 line-clamp-2">{{ $cardComponent['text'] ?? '' }}</p>
-                                                                </div>
-                                                            @endif
-                                                        @endforeach
-                                                    @endif
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <p class="text-sm text-neutral-500">{{ count($component['cards'] ?? []) }} tarjetas</p>
-                                    @endif
+                                {{-- Carousel scroll indicator --}}
+                                <div class="flex justify-center gap-1.5 mt-2">
+                                    @foreach($carouselComponent['cards'] as $index => $card)
+                                        <div class="w-1.5 h-1.5 rounded-full {{ $index === 0 ? 'bg-[#00a884]' : 'bg-neutral-300' }}"></div>
+                                    @endforeach
                                 </div>
+                            </div>
+                        @endif
 
-                            @elseif($componentType === 'LIMITED_TIME_OFFER')
-                                <div class="p-4 bg-warning-50 border-t border-warning-200">
+                        {{-- Other components (CATALOG, MPM, etc.) --}}
+                        @foreach($otherComponents as $component)
+                            @php $componentType = strtoupper($component['type'] ?? ''); @endphp
+                            @if($componentType === 'LIMITED_TIME_OFFER')
+                                <div class="mx-3 mb-3 p-3 bg-warning-50 rounded-lg border border-warning-200">
                                     <div class="flex items-center gap-2">
                                         <svg class="w-5 h-5 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
-                                        <span class="font-semibold text-warning-800">Oferta por tiempo limitado</span>
+                                        <span class="font-semibold text-warning-800 text-sm">Oferta por tiempo limitado</span>
                                     </div>
-                                    @if(isset($component['limited_time_offer']))
-                                        <p class="text-sm text-warning-700 mt-1">
-                                            Expira: {{ $component['limited_time_offer']['expiration_time_ms'] ?? 'No especificado' }}
-                                        </p>
-                                    @endif
                                 </div>
-
                             @elseif($componentType === 'CATALOG')
-                                <div class="p-4 border-t border-neutral-200">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="mx-3 mb-3 p-3 bg-white rounded-lg">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-[#00a884]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                                         </svg>
-                                        <span class="font-semibold text-neutral-700">Catálogo de productos</span>
+                                        <span class="font-medium text-neutral-700 text-sm">Ver catálogo</span>
                                     </div>
-                                    <p class="text-sm text-neutral-500">Este mensaje incluye productos del catálogo</p>
                                 </div>
-
                             @elseif($componentType === 'MPM')
-                                <div class="p-4 border-t border-neutral-200">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="mx-3 mb-3 p-3 bg-white rounded-lg">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-[#00a884]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                                         </svg>
-                                        <span class="font-semibold text-neutral-700">Multi-Product Message</span>
+                                        <span class="font-medium text-neutral-700 text-sm">Multi-Product Message</span>
                                     </div>
-                                    <p class="text-sm text-neutral-500">Mensaje con múltiples productos</p>
-                                </div>
-
-                            @elseif($componentType === 'ORDER_DETAILS')
-                                <div class="p-4 border-t border-neutral-200">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                                        </svg>
-                                        <span class="font-semibold text-neutral-700">Detalles del pedido</span>
-                                    </div>
-                                    <p class="text-sm text-neutral-500">Información de pedido incluida</p>
-                                </div>
-
-                            @elseif($componentType === 'ORDER_STATUS')
-                                <div class="p-4 border-t border-neutral-200">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        <span class="font-semibold text-neutral-700">Estado del pedido</span>
-                                    </div>
-                                    <p class="text-sm text-neutral-500">Actualización de estado de pedido</p>
-                                </div>
-
-                            @else
-                                {{-- Unknown component type - show raw info --}}
-                                <div class="p-4 border-t border-neutral-200 bg-neutral-50">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <svg class="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        <span class="font-semibold text-neutral-600">{{ $componentType }}</span>
-                                    </div>
-                                    @if(isset($component['text']))
-                                        <p class="text-sm text-neutral-600">{{ $component['text'] }}</p>
-                                    @endif
                                 </div>
                             @endif
                         @endforeach
                     @else
                         {{-- Object format (from local creation): {header: {...}, body: {...}, ...} --}}
                         @if(isset($components['header']))
-                            <div class="p-4 bg-primary-50 border-b border-neutral-200">
-                                @php $format = strtoupper($components['header']['format'] ?? 'TEXT'); @endphp
-                                @if($format === 'TEXT')
-                                    <p class="font-bold text-neutral-900">{{ $components['header']['text'] ?? '' }}</p>
-                                @else
-                                    <div class="flex items-center justify-center h-32 bg-neutral-100 rounded-lg">
-                                        <div class="text-center">
-                                            <svg class="w-12 h-12 text-neutral-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                            <p class="text-xs text-neutral-500">{{ $format }}</p>
-                                        </div>
+                            @php $format = strtoupper($components['header']['format'] ?? 'TEXT'); @endphp
+                            @if($format === 'TEXT')
+                                <div class="px-3 pt-2">
+                                    <p class="font-bold text-neutral-900 text-[15px]">{{ $components['header']['text'] ?? '' }}</p>
+                                </div>
+                            @elseif($format === 'IMAGE')
+                                <div class="relative h-40 bg-gradient-to-br from-neutral-200 to-neutral-300 flex items-center justify-center">
+                                    <svg class="w-16 h-16 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                            @elseif($format === 'VIDEO')
+                                <div class="relative h-40 bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center">
+                                    <div class="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
+                                        <svg class="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
                                     </div>
-                                @endif
-                            </div>
+                                </div>
+                            @else
+                                <div class="relative h-32 bg-gradient-to-br from-neutral-200 to-neutral-300 flex items-center justify-center">
+                                    <svg class="w-12 h-12 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <p class="absolute bottom-2 text-xs text-neutral-500 bg-white/80 px-2 py-0.5 rounded">{{ $format }}</p>
+                                </div>
+                            @endif
                         @endif
 
                         @if(isset($components['body']))
-                            <div class="p-4">
-                                <p class="text-neutral-900 whitespace-pre-wrap">{{ $components['body']['text'] ?? '' }}</p>
+                            <div class="px-3 py-2">
+                                <p class="text-neutral-800 whitespace-pre-wrap text-[14px] leading-relaxed">{{ $components['body']['text'] ?? '' }}</p>
                             </div>
                         @endif
 
                         @if(isset($components['footer']))
-                            <div class="px-4 pb-4">
+                            <div class="px-3 pb-2">
                                 <p class="text-xs text-neutral-500">{{ $components['footer']['text'] ?? '' }}</p>
                             </div>
                         @endif
 
                         @if(isset($components['buttons']) && !empty($components['buttons']))
-                            <div class="p-4 border-t border-neutral-200 space-y-2">
+                            <div class="border-t border-neutral-200">
                                 @foreach($components['buttons'] as $button)
-                                    <button type="button" class="w-full px-4 py-2 bg-neutral-100 text-primary-600 font-semibold rounded-lg">
-                                        {{ $button['text'] ?? '' }}
-                                    </button>
+                                    @php $buttonType = strtoupper($button['type'] ?? ''); @endphp
+                                    <div class="px-4 py-2.5 border-b border-neutral-100 last:border-b-0 text-center">
+                                        <span class="text-[#00a884] font-medium text-sm flex items-center justify-center gap-2">
+                                            @if($buttonType === 'URL')
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                                </svg>
+                                            @elseif($buttonType === 'QUICK_REPLY')
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                                                </svg>
+                                            @endif
+                                            {{ $button['text'] ?? '' }}
+                                        </span>
+                                    </div>
                                 @endforeach
                             </div>
                         @endif
+
+                        {{-- Close bubble for object format --}}
+                        </div>
+                        </div>
                     @endif
 
                     {{-- Show message if no content --}}
                     @if(empty($components))
-                        <div class="p-8 text-center">
-                            <svg class="w-12 h-12 text-neutral-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                            <p class="text-neutral-500">Sin contenido para mostrar</p>
+                        <div class="p-3">
+                            <div class="bg-white rounded-lg shadow-sm p-8 text-center">
+                                <svg class="w-12 h-12 text-neutral-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <p class="text-neutral-500">Sin contenido para mostrar</p>
+                            </div>
                         </div>
                     @endif
                 </div>
