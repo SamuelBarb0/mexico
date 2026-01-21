@@ -59,7 +59,7 @@
             </div>
 
             <div class="flex gap-3">
-                <button type="submit" class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all">
+                <button type="submit" class="inline-flex items-center px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all cursor-pointer">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
@@ -164,16 +164,16 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div class="flex items-center space-x-3">
                                     <a href="{{ route('clients.show', $client) }}" class="text-blue-600 hover:text-blue-800 font-semibold transition-colors">
-                                        👁️ Ver
+                                        Ver
                                     </a>
                                     <a href="{{ route('clients.edit', $client) }}" class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors">
-                                        ✏️ Editar
+                                        Editar
                                     </a>
                                     <form action="{{ route('clients.destroy', $client) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de eliminar este cliente?')">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800 font-semibold transition-colors">
-                                            🗑️ Eliminar
+                                        <button type="submit" class="text-red-600 hover:text-red-800 font-semibold transition-colors cursor-pointer">
+                                            Eliminar
                                         </button>
                                     </form>
                                 </div>

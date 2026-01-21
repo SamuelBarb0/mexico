@@ -14,7 +14,8 @@
       "Bash(powershell -Command \"\\(Get-Content ''c:\\\\xampp\\\\htdocs\\\\mexico\\\\resources\\\\views\\\\inbox\\\\show.blade.php''\\).Count\")",
       "Bash(tasklist:*)",
       "Bash(php verify_limits.php:*)",
-      "Bash(composer config:*)"
+      "Bash(composer config:*)",
+      "Bash(del \"c:\\\\xampp\\\\htdocs\\\\mexico\\\\database\\\\migrations\\\\2026_01_21_170239_add_is_primary_to_clients_table.php\")"
     ],
     "deny": [],
     "ask": []

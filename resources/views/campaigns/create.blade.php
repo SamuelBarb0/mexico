@@ -21,7 +21,8 @@
         selectedTemplate: null,
         templates: {{ Js::from($templates) }},
         variableMapping: {},
-        targetType: 'all'
+        targetType: 'client',
+        selectedClientId: '{{ $defaultClient?->id ?? '' }}'
     }">
         @csrf
 
@@ -166,12 +167,12 @@
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
-                                    Selecciona el cliente al que enviarás la campaña
+                                    Cliente seleccionado para la campaña
                                 </p>
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Cliente</label>
-                                <select name="target_audience[client_id]" class="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500">
+                                <select name="target_audience[client_id]" x-model="selectedClientId" class="w-full rounded-lg border-gray-300 focus:border-purple-500 focus:ring-purple-500">
                                     <option value="">Seleccionar cliente...</option>
                                     @foreach($clients as $client)
                                         <option value="{{ $client->id }}">{{ $client->name }} @if($client->company)({{ $client->company }})@endif</option>
@@ -252,7 +253,7 @@
                             Cancelar
                         </a>
                         <div class="flex space-x-3">
-                            <button type="submit" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition">
+                            <button type="submit" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition cursor-pointer">
                                 Crear Campaña
                             </button>
                         </div>

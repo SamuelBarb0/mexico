@@ -181,7 +181,7 @@
                     <div class="feature-item flex gap-2 mb-2">
                         <input type="text" name="features[]" placeholder="Ej: Campañas ilimitadas"
                             class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                        <button type="button" onclick="removeField(this)" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Eliminar</button>
+                        <button type="button" onclick="removeField(this)" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 cursor-pointer">Eliminar</button>
                     </div>
                 </div>
                 <button type="button" onclick="addFeature()" class="mt-2 text-indigo-600 hover:text-indigo-700 font-semibold text-sm">+ Agregar Característica</button>
@@ -223,7 +223,7 @@
 
             <!-- Botones -->
             <div class="flex gap-4">
-                <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-lg transition-all">
+                <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-lg transition-all cursor-pointer">
                     Crear Plan
                 </button>
                 <a href="{{ route('admin.plans.index') }}" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold px-6 py-3 rounded-lg text-center transition-all">
@@ -251,7 +251,7 @@ function addFeature() {
     div.innerHTML = `
         <input type="text" name="features[]" placeholder="Ej: Soporte prioritario"
             class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-        <button type="button" onclick="removeField(this)" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Eliminar</button>
+        <button type="button" onclick="removeField(this)" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 cursor-pointer">Eliminar</button>
     `;
     container.appendChild(div);
 }

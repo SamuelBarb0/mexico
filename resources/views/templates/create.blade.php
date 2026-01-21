@@ -113,7 +113,7 @@
             <a href="{{ route('templates.index') }}" class="px-6 py-3 bg-neutral-200 text-neutral-700 rounded-lg font-semibold hover:bg-neutral-300 transition-colors">
                 Cancelar
             </a>
-            <button type="submit" class="px-6 py-3 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-secondary-700 transition-all shadow-md hover:shadow-lg">
+            <button type="submit" class="px-6 py-3 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-secondary-700 transition-all shadow-md hover:shadow-lg cursor-pointer">
                 Crear Plantilla
             </button>
         </div>

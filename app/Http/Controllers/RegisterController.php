@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Tenant;
+use App\Models\Client;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\TenantLimit;
@@ -59,7 +60,16 @@ class RegisterController extends Controller
                 'is_active' => true,
             ]);
 
-            // 3. Buscar el plan gratuito o de prueba
+            // 3. Crear el Cliente por defecto del tenant
+            Client::create([
+                'tenant_id' => $tenant->id,
+                'name' => $validated['company_name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'status' => 'active',
+            ]);
+
+            // 4. Buscar el plan gratuito o de prueba
             $trialPlan = SubscriptionPlan::where(function($query) {
                     $query->where('price_monthly', 0)
                           ->where('price_yearly', 0);
@@ -77,7 +87,7 @@ class RegisterController extends Controller
                     ->first();
             }
 
-            // 4. Crear suscripción de prueba (si hay plan disponible)
+            // 5. Crear suscripción de prueba (si hay plan disponible)
             if ($trialPlan) {
                 Subscription::create([
                     'tenant_id' => $tenant->id,
@@ -88,7 +98,7 @@ class RegisterController extends Controller
                     'current_period_end' => now()->addDays(14),
                 ]);
 
-                // 5. Inicializar límites del tenant basado en el plan
+                // 6. Inicializar límites del tenant basado en el plan
                 TenantLimit::create([
                     'tenant_id' => $tenant->id,
                     'max_users' => $trialPlan->max_users ?? 2,
@@ -108,7 +118,7 @@ class RegisterController extends Controller
 
             DB::commit();
 
-            // 5. Iniciar sesión automáticamente
+            // 7. Iniciar sesión automáticamente
             auth()->login($user);
 
             return redirect()->route('dashboard')

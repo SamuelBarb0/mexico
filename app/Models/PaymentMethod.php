@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\TenantScope;
+use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[ScopedBy(TenantScope::class)]
 class PaymentMethod extends Model
 {
     use SoftDeletes;

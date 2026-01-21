@@ -103,7 +103,7 @@
                     @endforeach
                 </select>
             </div>
-            <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition">
+            <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition cursor-pointer">
                 Filtrar
             </button>
             @if(request('search') || request('user_type') || request('tenant_id'))

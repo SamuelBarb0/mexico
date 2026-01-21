@@ -101,14 +101,14 @@
             @if($currentSubscription->canResume())
             <form action="{{ route('subscriptions.resume') }}" method="POST">
                 @csrf
-                <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 cursor-pointer">
                     Reanudar Suscripción
                 </button>
             </form>
             @endif
 
             @if($currentSubscription->canCancel())
-            <button onclick="confirmCancel()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700">
+            <button onclick="confirmCancel()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 cursor-pointer">
                 Cancelar Suscripción
             </button>
             @endif

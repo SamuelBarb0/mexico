@@ -74,12 +74,9 @@ class PaymentMethodController extends Controller
      */
     public function setDefault(PaymentMethod $paymentMethod)
     {
-        $tenant = auth()->user()->tenant;
+        $this->authorize('update', $paymentMethod);
 
-        // Verify ownership
-        if ($paymentMethod->tenant_id !== $tenant->id) {
-            abort(403, 'No autorizado.');
-        }
+        $tenant = auth()->user()->tenant;
 
         try {
             // Set all as non-default
@@ -113,12 +110,9 @@ class PaymentMethodController extends Controller
      */
     public function destroy(PaymentMethod $paymentMethod)
     {
-        $tenant = auth()->user()->tenant;
+        $this->authorize('delete', $paymentMethod);
 
-        // Verify ownership
-        if ($paymentMethod->tenant_id !== $tenant->id) {
-            abort(403, 'No autorizado.');
-        }
+        $tenant = auth()->user()->tenant;
 
         // Prevent removing default payment method if subscription exists
         if ($paymentMethod->is_default && $tenant->hasActiveSubscription()) {

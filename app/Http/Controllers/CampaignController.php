@@ -42,6 +42,9 @@ class CampaignController extends Controller
         $templates = MessageTemplate::where('status', 'APPROVED')->orderBy('name')->get();
         $clients = \App\Models\Client::orderBy('name')->get();
 
+        // Obtener el primer cliente del tenant (creado automáticamente al registrarse)
+        $defaultClient = $clients->first();
+
         // Get unique tags from contacts
         $allTags = \App\Models\Contact::whereNotNull('tags')
             ->get()
@@ -51,7 +54,7 @@ class CampaignController extends Controller
             ->sort()
             ->values();
 
-        return view('campaigns.create', compact('wabaAccounts', 'templates', 'clients', 'allTags'));
+        return view('campaigns.create', compact('wabaAccounts', 'templates', 'clients', 'allTags', 'defaultClient'));
     }
 
     public function store(Request $request)
@@ -318,6 +321,9 @@ class CampaignController extends Controller
                 'campaign_id' => $campaign->id,
                 'status' => $campaign->status,
             ]);
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Esta campaña no puede ser ejecutada en su estado actual'], 400);
+            }
             return back()->withErrors(['error' => 'Esta campaña no puede ser ejecutada en su estado actual']);
         }
 
@@ -327,6 +333,9 @@ class CampaignController extends Controller
 
         if ($pendingMessages === 0) {
             \Log::warning('No hay mensajes pendientes para enviar');
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'No hay mensajes pendientes. Prepara la campaña primero.'], 400);
+            }
             return back()->withErrors(['error' => 'No hay mensajes pendientes. Prepara la campaña primero.']);
         }
 

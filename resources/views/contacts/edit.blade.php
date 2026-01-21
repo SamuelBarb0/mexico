@@ -104,7 +104,7 @@
             <a href="{{ route('contacts.show', $contact) }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded">
                 Cancelar
             </a>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded cursor-pointer">
                 Actualizar Contacto
             </button>
         </div>

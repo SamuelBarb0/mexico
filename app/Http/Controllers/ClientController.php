@@ -9,6 +9,7 @@ class ClientController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Client::class);
         $query = Client::with('contacts');
 
         // Search filter
@@ -35,11 +36,14 @@ class ClientController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Client::class);
         return view('clients.create');
     }
 
     public function store(Request $request)
     {
+        $this->authorize('create', Client::class);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'company' => 'nullable|string|max:255',
@@ -59,17 +63,21 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
+        $this->authorize('view', $client);
         $client->load('contacts');
         return view('clients.show', compact('client'));
     }
 
     public function edit(Client $client)
     {
+        $this->authorize('update', $client);
         return view('clients.edit', compact('client'));
     }
 
     public function update(Request $request, Client $client)
     {
+        $this->authorize('update', $client);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'company' => 'nullable|string|max:255',
@@ -89,6 +97,8 @@ class ClientController extends Controller
 
     public function destroy(Client $client)
     {
+        $this->authorize('delete', $client);
+
         $client->delete();
 
         return redirect()->route('clients.index')

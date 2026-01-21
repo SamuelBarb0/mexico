@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\TenantScope;
+use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
 
+#[ScopedBy(TenantScope::class)]
 class Subscription extends Model
 {
     use SoftDeletes;

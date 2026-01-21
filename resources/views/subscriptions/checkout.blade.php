@@ -205,7 +205,7 @@
                 @endif
 
                 <!-- Submit Button -->
-                <button type="submit" id="submit-button" class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                <button type="submit" id="submit-button" class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors cursor-pointer">
                     @if($plan->isFree())
                         Activar Plan Gratuito
                     @else

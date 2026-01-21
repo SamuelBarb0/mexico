@@ -139,7 +139,7 @@
                 </select>
             </div>
             <div class="flex items-end gap-2">
-                <button type="submit" class="flex-1 bg-gradient-to-r from-primary-600 to-secondary-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-primary-700 hover:to-secondary-700 transition-all shadow-md hover:shadow-lg">
+                <button type="submit" class="flex-1 bg-gradient-to-r from-primary-600 to-secondary-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-primary-700 hover:to-secondary-700 transition-all shadow-md hover:shadow-lg cursor-pointer">
                     Filtrar
                 </button>
                 <a href="{{ route('templates.index') }}" class="px-4 py-2 bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition-colors">

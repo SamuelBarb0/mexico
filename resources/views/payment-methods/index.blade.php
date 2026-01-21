@@ -11,7 +11,7 @@
                 <h1 class="text-3xl font-bold mb-2">Métodos de Pago</h1>
                 <p class="text-indigo-100">Gestiona tus tarjetas y métodos de pago</p>
             </div>
-            <button onclick="openAddCardModal()" class="bg-white text-indigo-600 px-6 py-3 rounded-lg hover:bg-indigo-50 font-semibold shadow-lg transition-all">
+            <button onclick="openAddCardModal()" class="bg-white text-indigo-600 px-6 py-3 rounded-lg hover:bg-indigo-50 font-semibold shadow-lg transition-all cursor-pointer">
                 + Agregar Tarjeta
             </button>
         </div>
@@ -75,7 +75,7 @@
                         @if(!$method->is_default)
                             <form action="{{ route('payment-methods.set-default', $method) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                                <button type="submit" class="px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer">
                                     Hacer predeterminada
                                 </button>
                             </form>
@@ -85,7 +85,7 @@
                             onsubmit="return confirm('¿Estás seguro de eliminar este método de pago?')">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            <button type="submit" class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                 {{ $method->is_default ? 'disabled' : '' }}>
                                 Eliminar
                             </button>
@@ -103,7 +103,7 @@
             <h3 class="mt-4 text-lg font-medium text-gray-900">No hay métodos de pago</h3>
             <p class="mt-2 text-sm text-gray-500">Agrega una tarjeta para gestionar tus pagos.</p>
             <div class="mt-6">
-                <button onclick="openAddCardModal()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                <button onclick="openAddCardModal()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer">
                     + Agregar Tarjeta
                 </button>
             </div>
@@ -139,7 +139,7 @@
     <div class="relative top-20 mx-auto p-8 border w-full max-w-md shadow-2xl rounded-2xl bg-white">
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-2xl font-bold text-gray-900">Agregar Tarjeta</h3>
-            <button onclick="closeAddCardModal()" class="text-gray-400 hover:text-gray-600">
+            <button onclick="closeAddCardModal()" class="text-gray-400 hover:text-gray-600 cursor-pointer">
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -180,11 +180,11 @@
 
                 <div class="flex space-x-3 pt-4">
                     <button type="button" onclick="closeAddCardModal()"
-                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium cursor-pointer">
                         Cancelar
                     </button>
                     <button type="submit" id="submit-button"
-                        class="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 font-medium">
+                        class="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 font-medium cursor-pointer">
                         Agregar Tarjeta
                     </button>
                 </div>

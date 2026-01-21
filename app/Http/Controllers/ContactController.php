@@ -10,6 +10,8 @@ class ContactController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Contact::class);
+
         $query = Contact::with('client');
 
         // Search filter
@@ -41,14 +43,31 @@ class ContactController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Contact::class);
+
         $clients = Client::orderBy('name')->get();
         return view('contacts.create', compact('clients'));
     }
 
     public function store(Request $request)
     {
+        $this->authorize('create', Contact::class);
+
+        $tenantId = auth()->user()->tenant_id;
+
         $validated = $request->validate([
-            'client_id' => 'nullable|exists:clients,id',
+            'client_id' => [
+                'nullable',
+                'integer',
+                function ($attribute, $value, $fail) use ($tenantId) {
+                    if ($value) {
+                        $client = Client::withoutGlobalScope('tenant')->find($value);
+                        if (!$client || $client->tenant_id !== $tenantId) {
+                            $fail('El cliente seleccionado no es válido.');
+                        }
+                    }
+                },
+            ],
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
@@ -80,20 +99,39 @@ class ContactController extends Controller
 
     public function show(Contact $contact)
     {
+        $this->authorize('view', $contact);
+
         $contact->load('client');
         return view('contacts.show', compact('contact'));
     }
 
     public function edit(Contact $contact)
     {
+        $this->authorize('update', $contact);
+
         $clients = Client::orderBy('name')->get();
         return view('contacts.edit', compact('contact', 'clients'));
     }
 
     public function update(Request $request, Contact $contact)
     {
+        $this->authorize('update', $contact);
+
+        $tenantId = auth()->user()->tenant_id;
+
         $validated = $request->validate([
-            'client_id' => 'nullable|exists:clients,id',
+            'client_id' => [
+                'nullable',
+                'integer',
+                function ($attribute, $value, $fail) use ($tenantId) {
+                    if ($value) {
+                        $client = Client::withoutGlobalScope('tenant')->find($value);
+                        if (!$client || $client->tenant_id !== $tenantId) {
+                            $fail('El cliente seleccionado no es válido.');
+                        }
+                    }
+                },
+            ],
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
@@ -125,6 +163,8 @@ class ContactController extends Controller
 
     public function destroy(Contact $contact)
     {
+        $this->authorize('delete', $contact);
+
         $contact->delete();
 
         return redirect()->route('contacts.index')

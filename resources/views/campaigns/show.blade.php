@@ -51,15 +51,11 @@
                     </form>
                 @endif
 
-                @if(in_array($campaign->status, ['draft', 'scheduled', 'paused']) && $campaign->total_recipients > 0 && !in_array($campaign->status, ['active', 'running', 'completed']))
-                    <form action="{{ route('campaigns.execute', $campaign) }}" method="POST" class="inline">
-                        @csrf
-                        <button type="submit" class="bg-green-500 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:bg-green-600 cursor-pointer">
-                            <i class="bi bi-play-circle"></i>
-                            <span class="hidden sm:inline">Ejecutar Campaña ({{ number_format($campaign->total_recipients) }} mensajes)</span>
-                            <span class="sm:hidden">Ejecutar ({{ number_format($campaign->total_recipients) }})</span>
-                        </button>
-                    </form>
+                @if(in_array($campaign->status, ['draft', 'scheduled', 'paused']) && $campaign->total_recipients > 0)
+                    <button type="button" id="executeButton" onclick="startCampaignExecution()" class="bg-green-500 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all hover:bg-green-600 cursor-pointer">
+                        <span class="hidden sm:inline">Ejecutar Campaña ({{ number_format($campaign->total_recipients) }} mensajes)</span>
+                        <span class="sm:hidden">Ejecutar ({{ number_format($campaign->total_recipients) }})</span>
+                    </button>
                 @endif
 
                 @if($campaign->total_recipients > 0)
@@ -364,12 +360,17 @@ function startCampaignExecution() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
         }
     }).then(response => {
         if (!response.ok) {
-            throw new Error('Error al ejecutar campaña');
+            return response.json().then(data => {
+                throw new Error(data.message || 'Error al ejecutar campaña');
+            });
         }
+        return response.json();
+    }).then(data => {
         // Iniciar polling para actualizar progreso
         startProgressPolling();
     }).catch(error => {
