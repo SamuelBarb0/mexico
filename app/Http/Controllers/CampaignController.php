@@ -315,8 +315,8 @@ class CampaignController extends Controller
             'campaign_status' => $campaign->status,
         ]);
 
-        // Validate campaign can be executed
-        if (!in_array($campaign->status, ['draft', 'scheduled', 'paused'])) {
+        // Validate campaign can be executed (include 'active' to allow continuing execution)
+        if (!in_array($campaign->status, ['draft', 'scheduled', 'paused', 'active'])) {
             \Log::warning('Campaña no puede ser ejecutada - estado inválido', [
                 'campaign_id' => $campaign->id,
                 'status' => $campaign->status,
