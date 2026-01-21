@@ -80,6 +80,7 @@ class CampaignController extends Controller
                 'target_audience.tags' => 'nullable|array',
                 'target_audience.tags.*' => 'nullable|string',
                 'template_variables_mapping' => 'nullable|array',
+                'header_media_url' => 'nullable|url|max:1000',
                 'scheduled_at' => 'nullable|date|after:now',
             ]);
             \Log::info('Validación exitosa:', $validated);
@@ -108,6 +109,7 @@ class CampaignController extends Controller
                 'status' => $status,
                 'target_audience' => $targetAudience,
                 'template_variables_mapping' => $validated['template_variables_mapping'] ?? [],
+                'header_media_url' => $validated['header_media_url'] ?? null,
                 'scheduled_at' => $validated['scheduled_at'] ?? null,
             ];
             \Log::info('Datos de campaña preparados:', $campaignData);

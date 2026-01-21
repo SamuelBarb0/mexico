@@ -19,10 +19,20 @@
 
     <form action="{{ route('campaigns.store') }}" method="POST" x-data="{
         selectedTemplate: null,
-        templates: {{ Js::from($templates) }},
+        templates: {{ Js::from($templates->map(fn($t) => [
+            'id' => $t->id,
+            'name' => $t->name,
+            'category' => $t->category,
+            'components' => $t->components,
+            'header_type' => $t->getHeaderType(),
+            'has_media_header' => $t->hasMediaHeader(),
+        ])) }},
         variableMapping: {},
         targetType: 'client',
-        selectedClientId: '{{ $defaultClient?->id ?? '' }}'
+        selectedClientId: '{{ $defaultClient?->id ?? '' }}',
+        getSelectedTemplate() {
+            return this.templates.find(t => t.id == this.selectedTemplate);
+        }
     }">
         @csrf
 
@@ -120,9 +130,40 @@
                             <template x-for="template in templates" :key="template.id">
                                 <div x-show="selectedTemplate == template.id">
                                     <p class="text-sm font-semibold text-gray-700 mb-2">Vista Previa:</p>
+
+                                    <!-- Header Media Indicator -->
+                                    <div x-show="template.has_media_header" class="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
+                                        <span class="text-xs font-semibold text-blue-700">
+                                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                            Esta plantilla requiere <span x-text="template.header_type === 'IMAGE' ? 'una imagen' : (template.header_type === 'VIDEO' ? 'un video' : 'un documento')"></span> en el header
+                                        </span>
+                                    </div>
+
                                     <div class="text-sm text-gray-600 whitespace-pre-wrap" x-text="template.components?.body?.text || 'Sin contenido'"></div>
                                 </div>
                             </template>
+                        </div>
+
+                        <!-- Header Media URL (shown when template has media header) -->
+                        <div x-show="getSelectedTemplate()?.has_media_header" class="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <svg class="w-4 h-4 inline mr-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                URL del <span x-text="getSelectedTemplate()?.header_type === 'IMAGE' ? 'Imagen' : (getSelectedTemplate()?.header_type === 'VIDEO' ? 'Video' : 'Documento')"></span> *
+                            </label>
+                            <input type="url" name="header_media_url"
+                                class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                                placeholder="https://ejemplo.com/imagen.jpg"
+                                x-bind:required="getSelectedTemplate()?.has_media_header">
+                            <p class="mt-2 text-xs text-blue-700">
+                                <strong>Importante:</strong> La URL debe ser pública y accesible. Formatos aceptados:
+                                <span x-show="getSelectedTemplate()?.header_type === 'IMAGE'">JPG, PNG (máx 5MB)</span>
+                                <span x-show="getSelectedTemplate()?.header_type === 'VIDEO'">MP4 (máx 16MB)</span>
+                                <span x-show="getSelectedTemplate()?.header_type === 'DOCUMENT'">PDF (máx 100MB)</span>
+                            </p>
                         </div>
                     </div>
                 </div>

@@ -246,6 +246,11 @@ class SendCampaignMessagesJob implements ShouldQueue
             }
         }
 
+        // Add header media URL if campaign has one
+        if (!empty($this->campaign->header_media_url)) {
+            $variables['header_media_url'] = $this->campaign->header_media_url;
+        }
+
         return $variables;
     }
 

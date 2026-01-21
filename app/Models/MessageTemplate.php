@@ -159,4 +159,49 @@ class MessageTemplate extends Model
         $bodyComponent = collect($this->components)->firstWhere('type', 'BODY');
         return $bodyComponent['text'] ?? 'Sin contenido';
     }
+
+    /**
+     * Get header type (TEXT, IMAGE, VIDEO, DOCUMENT, or null)
+     */
+    public function getHeaderType(): ?string
+    {
+        $components = $this->components;
+
+        if (isset($components['header']['format'])) {
+            return strtoupper($components['header']['format']);
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if template has media header
+     */
+    public function hasMediaHeader(): bool
+    {
+        $headerType = $this->getHeaderType();
+        return in_array($headerType, ['IMAGE', 'VIDEO', 'DOCUMENT']);
+    }
+
+    /**
+     * Check if template has text header with variables
+     */
+    public function hasTextHeader(): bool
+    {
+        return $this->getHeaderType() === 'TEXT';
+    }
+
+    /**
+     * Get header media example URL if exists
+     */
+    public function getHeaderMediaExample(): ?string
+    {
+        $components = $this->components;
+
+        if (isset($components['header']['example']['header_handle'][0])) {
+            return $components['header']['example']['header_handle'][0];
+        }
+
+        return null;
+    }
 }

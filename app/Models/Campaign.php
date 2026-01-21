@@ -22,6 +22,7 @@ class Campaign extends Model
         'status',
         'message_template',
         'template_variables_mapping',
+        'header_media_url',
         'target_audience',
         'scheduled_at',
         'started_at',
