@@ -298,44 +298,15 @@ class TemplateService
     }
 
     /**
-     * Format components from Meta API response to our internal format
+     * Format components from Meta API response - preserves Meta's array format
+     * Meta returns components as an array with 'type' keys (HEADER, BODY, FOOTER, BUTTONS, CAROUSEL, etc.)
+     * We preserve this format for compatibility with the views
      */
     protected function formatComponentsFromMeta(array $metaComponents): array
     {
-        $formatted = [];
-
-        foreach ($metaComponents as $component) {
-            $type = strtolower($component['type']);
-
-            switch ($type) {
-                case 'header':
-                    $formatted['header'] = [
-                        'format' => $component['format'] ?? 'TEXT',
-                        'text' => $component['text'] ?? null,
-                        'example' => $component['example'] ?? null,
-                    ];
-                    break;
-
-                case 'body':
-                    $formatted['body'] = [
-                        'text' => $component['text'] ?? '',
-                        'example' => $component['example'] ?? null,
-                    ];
-                    break;
-
-                case 'footer':
-                    $formatted['footer'] = [
-                        'text' => $component['text'] ?? '',
-                    ];
-                    break;
-
-                case 'buttons':
-                    $formatted['buttons'] = $component['buttons'] ?? [];
-                    break;
-            }
-        }
-
-        return $formatted;
+        // Return the components as-is from Meta, just ensure proper structure
+        // Meta format: [['type' => 'HEADER', 'format' => 'TEXT', 'text' => '...'], ['type' => 'BODY', 'text' => '...'], ...]
+        return $metaComponents;
     }
 
     /**

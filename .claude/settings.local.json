@@ -15,7 +15,8 @@
       "Bash(tasklist:*)",
       "Bash(php verify_limits.php:*)",
       "Bash(composer config:*)",
-      "Bash(del \"c:\\\\xampp\\\\htdocs\\\\mexico\\\\database\\\\migrations\\\\2026_01_21_170239_add_is_primary_to_clients_table.php\")"
+      "Bash(del \"c:\\\\xampp\\\\htdocs\\\\mexico\\\\database\\\\migrations\\\\2026_01_21_170239_add_is_primary_to_clients_table.php\")",
+      "Bash(php -l:*)"
     ],
     "deny": [],
     "ask": []

@@ -137,15 +137,50 @@ class MessageTemplate extends Model
     public function extractVariables(): array
     {
         $variables = [];
+        $components = $this->components ?? [];
 
-        foreach ($this->components as $component) {
-            if (isset($component['text'])) {
-                preg_match_all('/\{\{(\d+)\}\}/', $component['text'], $matches);
-                foreach ($matches[1] as $index) {
-                    $variables[] = [
-                        'index' => (int)$index,
-                        'component' => $component['type'] ?? 'BODY',
-                    ];
+        // Check if it's Meta array format
+        if (isset($components[0]) || (is_array($components) && !empty($components) && isset(array_values($components)[0]['type']))) {
+            // Meta array format
+            foreach ($components as $component) {
+                if (isset($component['text'])) {
+                    preg_match_all('/\{\{(\d+)\}\}/', $component['text'], $matches);
+                    foreach ($matches[1] as $index) {
+                        $variables[] = [
+                            'index' => (int)$index,
+                            'component' => $component['type'] ?? 'BODY',
+                        ];
+                    }
+                }
+
+                // Also check carousel cards
+                if (isset($component['cards'])) {
+                    foreach ($component['cards'] as $cardIndex => $card) {
+                        foreach ($card['components'] ?? [] as $cardComponent) {
+                            if (isset($cardComponent['text'])) {
+                                preg_match_all('/\{\{(\d+)\}\}/', $cardComponent['text'], $matches);
+                                foreach ($matches[1] as $index) {
+                                    $variables[] = [
+                                        'index' => (int)$index,
+                                        'component' => 'CAROUSEL_CARD_' . ($cardIndex + 1),
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Object format (local templates)
+            foreach (['header', 'body', 'footer'] as $key) {
+                if (isset($components[$key]['text'])) {
+                    preg_match_all('/\{\{(\d+)\}\}/', $components[$key]['text'], $matches);
+                    foreach ($matches[1] as $index) {
+                        $variables[] = [
+                            'index' => (int)$index,
+                            'component' => strtoupper($key),
+                        ];
+                    }
                 }
             }
         }
@@ -156,17 +191,57 @@ class MessageTemplate extends Model
     // Get preview text for display
     public function getPreviewText(): string
     {
-        $bodyComponent = collect($this->components)->firstWhere('type', 'BODY');
-        return $bodyComponent['text'] ?? 'Sin contenido';
+        $components = $this->components ?? [];
+
+        // Check if it's Meta array format (has numeric keys or first element has 'type')
+        if (isset($components[0]) || (is_array($components) && !empty($components) && isset(array_values($components)[0]['type']))) {
+            // Meta array format
+            $bodyComponent = collect($components)->firstWhere('type', 'BODY');
+            if ($bodyComponent && isset($bodyComponent['text'])) {
+                return $bodyComponent['text'];
+            }
+
+            // Check for carousel
+            $carouselComponent = collect($components)->firstWhere('type', 'CAROUSEL');
+            if ($carouselComponent) {
+                $cardCount = count($carouselComponent['cards'] ?? []);
+                return "[Carrusel con {$cardCount} tarjetas]";
+            }
+
+            // Check for catalog
+            $catalogComponent = collect($components)->firstWhere('type', 'CATALOG');
+            if ($catalogComponent) {
+                return "[Catálogo de productos]";
+            }
+
+            return 'Sin contenido de texto';
+        }
+
+        // Object format (local templates): {header: {...}, body: {...}}
+        if (isset($components['body']['text'])) {
+            return $components['body']['text'];
+        }
+
+        return 'Sin contenido';
     }
 
     /**
-     * Get header type (TEXT, IMAGE, VIDEO, DOCUMENT, or null)
+     * Get header type (TEXT, IMAGE, VIDEO, DOCUMENT, LOCATION, or null)
      */
     public function getHeaderType(): ?string
     {
-        $components = $this->components;
+        $components = $this->components ?? [];
 
+        // Check if it's Meta array format
+        if (isset($components[0]) || (is_array($components) && !empty($components) && isset(array_values($components)[0]['type']))) {
+            $headerComponent = collect($components)->firstWhere('type', 'HEADER');
+            if ($headerComponent && isset($headerComponent['format'])) {
+                return strtoupper($headerComponent['format']);
+            }
+            return null;
+        }
+
+        // Object format (local templates)
         if (isset($components['header']['format'])) {
             return strtoupper($components['header']['format']);
         }
@@ -180,7 +255,7 @@ class MessageTemplate extends Model
     public function hasMediaHeader(): bool
     {
         $headerType = $this->getHeaderType();
-        return in_array($headerType, ['IMAGE', 'VIDEO', 'DOCUMENT']);
+        return in_array($headerType, ['IMAGE', 'VIDEO', 'DOCUMENT', 'LOCATION']);
     }
 
     /**
@@ -196,12 +271,76 @@ class MessageTemplate extends Model
      */
     public function getHeaderMediaExample(): ?string
     {
-        $components = $this->components;
+        $components = $this->components ?? [];
 
+        // Check if it's Meta array format
+        if (isset($components[0]) || (is_array($components) && !empty($components) && isset(array_values($components)[0]['type']))) {
+            $headerComponent = collect($components)->firstWhere('type', 'HEADER');
+            if ($headerComponent && isset($headerComponent['example']['header_handle'][0])) {
+                return $headerComponent['example']['header_handle'][0];
+            }
+            return null;
+        }
+
+        // Object format (local templates)
         if (isset($components['header']['example']['header_handle'][0])) {
             return $components['header']['example']['header_handle'][0];
         }
 
         return null;
+    }
+
+    /**
+     * Check if template is a carousel type
+     */
+    public function isCarousel(): bool
+    {
+        $components = $this->components ?? [];
+
+        if (isset($components[0]) || (is_array($components) && !empty($components) && isset(array_values($components)[0]['type']))) {
+            return collect($components)->contains('type', 'CAROUSEL');
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if template has a catalog component
+     */
+    public function hasCatalog(): bool
+    {
+        $components = $this->components ?? [];
+
+        if (isset($components[0]) || (is_array($components) && !empty($components) && isset(array_values($components)[0]['type']))) {
+            return collect($components)->contains('type', 'CATALOG');
+        }
+
+        return false;
+    }
+
+    /**
+     * Get all component types present in this template
+     */
+    public function getComponentTypes(): array
+    {
+        $components = $this->components ?? [];
+        $types = [];
+
+        if (isset($components[0]) || (is_array($components) && !empty($components) && isset(array_values($components)[0]['type']))) {
+            // Meta array format
+            foreach ($components as $component) {
+                if (isset($component['type'])) {
+                    $types[] = strtoupper($component['type']);
+                }
+            }
+        } else {
+            // Object format
+            if (isset($components['header'])) $types[] = 'HEADER';
+            if (isset($components['body'])) $types[] = 'BODY';
+            if (isset($components['footer'])) $types[] = 'FOOTER';
+            if (isset($components['buttons'])) $types[] = 'BUTTONS';
+        }
+
+        return array_unique($types);
     }
 }
