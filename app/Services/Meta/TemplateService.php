@@ -221,7 +221,16 @@ class TemplateService
 
             $synced = 0;
             $created = 0;
+            $deleted = 0;
 
+            // Get list of template names from Meta
+            $metaTemplateKeys = [];
+            foreach ($result['data'] as $metaTemplate) {
+                $key = $metaTemplate['name'] . '_' . $metaTemplate['language'];
+                $metaTemplateKeys[$key] = true;
+            }
+
+            // Sync templates from Meta
             foreach ($result['data'] as $metaTemplate) {
                 // Use updateOrCreate to avoid duplicates
                 $template = MessageTemplate::updateOrCreate(
@@ -236,7 +245,7 @@ class TemplateService
                         'category' => $metaTemplate['category'],
                         'status' => $this->mapMetaStatusToLocal($metaTemplate['status']),
                         'meta_status' => $metaTemplate['status'],
-                        'components' => $metaTemplate['components'],
+                        'components' => $this->formatComponentsFromMeta($metaTemplate['components']),
                         'quality_score' => $metaTemplate['quality_score']['score'] ?? 'UNKNOWN',
                         'rejection_reason' => $metaTemplate['rejected_reason'] ?? null,
                     ]
@@ -249,10 +258,29 @@ class TemplateService
                 }
             }
 
+            // Delete templates that no longer exist in Meta (only those that have meta_template_id)
+            $localTemplates = MessageTemplate::where('tenant_id', $tenantId)
+                ->where('waba_account_id', $wabaAccount->id)
+                ->whereNotNull('meta_template_id')
+                ->get();
+
+            foreach ($localTemplates as $localTemplate) {
+                $key = $localTemplate->name . '_' . $localTemplate->language;
+                if (!isset($metaTemplateKeys[$key])) {
+                    Log::info('Deleting template no longer in Meta', [
+                        'template_id' => $localTemplate->id,
+                        'name' => $localTemplate->name,
+                    ]);
+                    $localTemplate->delete();
+                    $deleted++;
+                }
+            }
+
             return [
                 'success' => true,
                 'synced' => $synced,
                 'created' => $created,
+                'deleted' => $deleted,
                 'total' => count($result['data']),
             ];
 
@@ -267,6 +295,47 @@ class TemplateService
                 'error' => 'Error al sincronizar plantillas con Meta',
             ];
         }
+    }
+
+    /**
+     * Format components from Meta API response to our internal format
+     */
+    protected function formatComponentsFromMeta(array $metaComponents): array
+    {
+        $formatted = [];
+
+        foreach ($metaComponents as $component) {
+            $type = strtolower($component['type']);
+
+            switch ($type) {
+                case 'header':
+                    $formatted['header'] = [
+                        'format' => $component['format'] ?? 'TEXT',
+                        'text' => $component['text'] ?? null,
+                        'example' => $component['example'] ?? null,
+                    ];
+                    break;
+
+                case 'body':
+                    $formatted['body'] = [
+                        'text' => $component['text'] ?? '',
+                        'example' => $component['example'] ?? null,
+                    ];
+                    break;
+
+                case 'footer':
+                    $formatted['footer'] = [
+                        'text' => $component['text'] ?? '',
+                    ];
+                    break;
+
+                case 'buttons':
+                    $formatted['buttons'] = $component['buttons'] ?? [];
+                    break;
+            }
+        }
+
+        return $formatted;
     }
 
     /**

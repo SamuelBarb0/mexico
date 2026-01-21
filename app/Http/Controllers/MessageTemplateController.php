@@ -274,7 +274,11 @@ class MessageTemplateController extends Controller
         $result = $this->templateService->syncAllTemplates($wabaAccount, $user->tenant_id);
 
         if ($result['success']) {
-            return back()->with('success', "Sincronizadas {$result['synced']} plantillas, creadas {$result['created']} nuevas");
+            $message = "Sincronización completada: {$result['synced']} actualizadas, {$result['created']} nuevas";
+            if (isset($result['deleted']) && $result['deleted'] > 0) {
+                $message .= ", {$result['deleted']} eliminadas (ya no existen en Meta)";
+            }
+            return back()->with('success', $message);
         }
 
         return back()->withErrors(['error' => $result['error']]);
