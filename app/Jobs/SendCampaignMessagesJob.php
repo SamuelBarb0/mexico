@@ -260,12 +260,14 @@ class SendCampaignMessagesJob implements ShouldQueue
     protected function buildMessageContent(\App\Models\MessageTemplate $template, array $variables): string
     {
         $content = '';
-        $components = $template->components;
+        $components = $this->normalizeComponents($template->components);
 
         // Add header if present
         if (isset($components['header'])) {
             $header = $components['header'];
-            if ($header['format'] === 'TEXT' && isset($header['text'])) {
+            $format = $header['format'] ?? 'TEXT';
+
+            if ($format === 'TEXT' && isset($header['text'])) {
                 $headerText = $header['text'];
                 // Replace variables in header
                 foreach ($variables as $key => $value) {
@@ -275,8 +277,8 @@ class SendCampaignMessagesJob implements ShouldQueue
                     }
                 }
                 $content .= $headerText . "\n\n";
-            } elseif (in_array($header['format'], ['IMAGE', 'VIDEO', 'DOCUMENT'])) {
-                $content .= "[{$header['format']}]\n\n";
+            } elseif (in_array($format, ['IMAGE', 'VIDEO', 'DOCUMENT'])) {
+                $content .= "[{$format}]\n\n";
             }
         }
 
@@ -306,6 +308,51 @@ class SendCampaignMessagesJob implements ShouldQueue
         }
 
         return $content;
+    }
+
+    /**
+     * Normalize template components from Meta's array format to object format
+     */
+    protected function normalizeComponents(array $components): array
+    {
+        // If already in object format, return as-is
+        if (isset($components['body']) || isset($components['header'])) {
+            return $components;
+        }
+
+        $normalized = [];
+
+        foreach ($components as $component) {
+            if (!is_array($component) || !isset($component['type'])) {
+                continue;
+            }
+
+            $type = strtoupper($component['type']);
+
+            switch ($type) {
+                case 'HEADER':
+                    $normalized['header'] = [
+                        'format' => $component['format'] ?? 'TEXT',
+                        'text' => $component['text'] ?? '',
+                    ];
+                    break;
+                case 'BODY':
+                    $normalized['body'] = [
+                        'text' => $component['text'] ?? '',
+                    ];
+                    break;
+                case 'FOOTER':
+                    $normalized['footer'] = [
+                        'text' => $component['text'] ?? '',
+                    ];
+                    break;
+                case 'BUTTONS':
+                    $normalized['buttons'] = $component['buttons'] ?? [];
+                    break;
+            }
+        }
+
+        return $normalized;
     }
 
     /**

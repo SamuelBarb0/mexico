@@ -99,11 +99,21 @@ class WhatsAppService
         $components = [];
         $templateComponents = $template->components;
 
-        // Process HEADER component if it has variables
-        if (isset($templateComponents['header'])) {
-            $header = $templateComponents['header'];
+        // Normalize components to object format if they come as array from Meta
+        $normalized = $this->normalizeComponents($templateComponents);
 
-            if ($header['format'] === 'TEXT' && !empty($header['text'])) {
+        Log::debug('Building template components', [
+            'template' => $template->name,
+            'variables' => $variables,
+            'normalized' => $normalized,
+        ]);
+
+        // Process HEADER component if it has variables
+        if (isset($normalized['header'])) {
+            $header = $normalized['header'];
+            $format = $header['format'] ?? 'TEXT';
+
+            if ($format === 'TEXT' && !empty($header['text'])) {
                 $headerVariables = $this->extractVariablesFromText($header['text']);
 
                 if (!empty($headerVariables)) {
@@ -124,9 +134,9 @@ class WhatsAppService
                         ];
                     }
                 }
-            } elseif (in_array($header['format'], ['IMAGE', 'VIDEO', 'DOCUMENT'])) {
+            } elseif (in_array($format, ['IMAGE', 'VIDEO', 'DOCUMENT'])) {
                 // Handle media headers
-                $mediaType = strtolower($header['format']);
+                $mediaType = strtolower($format);
                 if (isset($variables["header_media_url"])) {
                     $components[] = [
                         'type' => 'header',
@@ -144,8 +154,8 @@ class WhatsAppService
         }
 
         // Process BODY component (required)
-        if (isset($templateComponents['body'])) {
-            $bodyText = $templateComponents['body']['text'];
+        if (isset($normalized['body'])) {
+            $bodyText = $normalized['body']['text'] ?? '';
             $bodyVariables = $this->extractVariablesFromText($bodyText);
 
             if (!empty($bodyVariables)) {
@@ -169,9 +179,12 @@ class WhatsAppService
         }
 
         // Process BUTTONS component if dynamic
-        if (isset($templateComponents['buttons'])) {
-            foreach ($templateComponents['buttons'] as $index => $button) {
-                if ($button['type'] === 'URL' && isset($button['url']) && strpos($button['url'], '{{1}}') !== false) {
+        if (isset($normalized['buttons']) && is_array($normalized['buttons'])) {
+            foreach ($normalized['buttons'] as $index => $button) {
+                $buttonType = $button['type'] ?? '';
+                $buttonUrl = $button['url'] ?? '';
+
+                if ($buttonType === 'URL' && strpos($buttonUrl, '{{1}}') !== false) {
                     // Dynamic URL button
                     if (isset($variables["button_{$index}_url"])) {
                         $components[] = [
@@ -190,7 +203,62 @@ class WhatsAppService
             }
         }
 
+        Log::debug('Built components for API', ['components' => $components]);
+
         return $components;
+    }
+
+    /**
+     * Normalize template components from Meta's array format to object format
+     * Meta format: [['type' => 'HEADER', ...], ['type' => 'BODY', ...]]
+     * Object format: ['header' => [...], 'body' => [...]]
+     */
+    protected function normalizeComponents(array $components): array
+    {
+        // If already in object format (has 'body' key directly), return as-is
+        if (isset($components['body']) || isset($components['header'])) {
+            return $components;
+        }
+
+        // Convert array format to object format
+        $normalized = [];
+
+        foreach ($components as $component) {
+            if (!is_array($component) || !isset($component['type'])) {
+                continue;
+            }
+
+            $type = strtoupper($component['type']);
+
+            switch ($type) {
+                case 'HEADER':
+                    $normalized['header'] = [
+                        'format' => $component['format'] ?? 'TEXT',
+                        'text' => $component['text'] ?? '',
+                        'example' => $component['example'] ?? null,
+                    ];
+                    break;
+
+                case 'BODY':
+                    $normalized['body'] = [
+                        'text' => $component['text'] ?? '',
+                        'example' => $component['example'] ?? null,
+                    ];
+                    break;
+
+                case 'FOOTER':
+                    $normalized['footer'] = [
+                        'text' => $component['text'] ?? '',
+                    ];
+                    break;
+
+                case 'BUTTONS':
+                    $normalized['buttons'] = $component['buttons'] ?? [];
+                    break;
+            }
+        }
+
+        return $normalized;
     }
 
     /**
