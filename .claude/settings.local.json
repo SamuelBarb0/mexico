@@ -21,7 +21,8 @@
       "Bash(composer show:*)",
       "Bash(del \"c:\\\\xampp\\\\htdocs\\\\mexico\\\\database\\\\migrations\\\\2026_01_07_174159_create_contacts_table.php\")",
       "Bash(php check_template.php:*)",
-      "Bash(php test_api.php:*)"
+      "Bash(php test_api.php:*)",
+      "Bash(php test_all_endpoints.php:*)"
     ],
     "deny": [],
     "ask": []

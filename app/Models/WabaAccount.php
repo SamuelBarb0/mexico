@@ -41,6 +41,11 @@ class WabaAccount extends Model
         return $this->hasMany(Campaign::class);
     }
 
+    public function templates(): HasMany
+    {
+        return $this->hasMany(MessageTemplate::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
