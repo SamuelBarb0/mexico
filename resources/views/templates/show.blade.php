@@ -390,16 +390,35 @@
             <div class="bg-white/70 backdrop-blur-sm rounded-2xl shadow-soft p-6 border border-primary-100">
                 <h3 class="text-lg font-bold text-neutral-900 mb-4">Acciones</h3>
 
+                {{-- Flash Messages --}}
+                @if(session('success'))
+                    <div class="mb-4 p-3 bg-success-100 border border-success-300 text-success-800 rounded-lg text-sm">
+                        {{ session('success') }}
+                    </div>
+                @endif
+
+                @if(session('error'))
+                    <div class="mb-4 p-3 bg-danger-100 border border-danger-300 text-danger-800 rounded-lg text-sm">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
+                @if(session('warning'))
+                    <div class="mb-4 p-3 bg-warning-100 border border-warning-300 text-warning-800 rounded-lg text-sm">
+                        {{ session('warning') }}
+                    </div>
+                @endif
+
                 <div class="space-y-3">
                     @if($template->isDraft())
                         <form action="{{ route('templates.submit', $template) }}" method="POST">
                             @csrf
-                            <button type="submit" class="w-full bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg">
+                            <button type="submit" class="w-full bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 text-white px-4 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg cursor-pointer">
                                 Enviar a Meta
                             </button>
                         </form>
 
-                        <a href="{{ route('templates.edit', $template) }}" class="block w-full bg-neutral-600 hover:bg-neutral-700 text-white px-4 py-2 rounded-lg font-semibold text-center transition-colors">
+                        <a href="{{ route('templates.edit', $template) }}" class="block w-full bg-neutral-600 hover:bg-neutral-700 text-white px-4 py-2 rounded-lg font-semibold text-center transition-colors cursor-pointer">
                             Editar
                         </a>
                     @endif
@@ -407,7 +426,7 @@
                     @if($template->meta_template_id)
                         <form action="{{ route('templates.sync', $template) }}" method="POST">
                             @csrf
-                            <button type="submit" class="w-full bg-accent-600 hover:bg-accent-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                            <button type="submit" class="w-full bg-accent-600 hover:bg-accent-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors cursor-pointer">
                                 Sincronizar con Meta
                             </button>
                         </form>
@@ -416,7 +435,7 @@
                     <form action="{{ route('templates.destroy', $template) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar esta plantilla?')">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="w-full bg-danger-600 hover:bg-danger-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                        <button type="submit" class="w-full bg-danger-600 hover:bg-danger-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors cursor-pointer">
                             Eliminar
                         </button>
                     </form>

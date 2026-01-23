@@ -23,8 +23,18 @@ class MetaGraphApiClient
     public function createTemplate(string $wabaId, string $accessToken, array $templateData): array
     {
         try {
+            Log::info('Meta API: Creating template', [
+                'waba_id' => $wabaId,
+                'template_data' => $templateData,
+            ]);
+
             $response = Http::withToken($accessToken)
                 ->post("{$this->baseUrl}/{$wabaId}/message_templates", $templateData);
+
+            Log::info('Meta API: Response received', [
+                'status' => $response->status(),
+                'body' => $response->json(),
+            ]);
 
             if ($response->successful()) {
                 return [
@@ -33,15 +43,27 @@ class MetaGraphApiClient
                 ];
             }
 
+            $errorResponse = $response->json();
+            $errorMessage = $errorResponse['error']['message'] ?? 'Error desconocido';
+            $errorCode = $errorResponse['error']['code'] ?? null;
+            $errorSubcode = $errorResponse['error']['error_subcode'] ?? null;
+
             Log::error('Meta API: Failed to create template', [
                 'status' => $response->status(),
-                'response' => $response->json(),
+                'response' => $errorResponse,
             ]);
+
+            // Build user-friendly error message
+            $userMessage = $errorMessage;
+            if ($errorCode) {
+                $userMessage .= " (Código: {$errorCode})";
+            }
 
             return [
                 'success' => false,
-                'error' => $response->json()['error']['message'] ?? 'Unknown error',
-                'error_code' => $response->json()['error']['code'] ?? null,
+                'error' => $userMessage,
+                'error_code' => $errorCode,
+                'error_subcode' => $errorSubcode,
             ];
 
         } catch (Exception $e) {
@@ -51,7 +73,7 @@ class MetaGraphApiClient
 
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => 'Error de conexión: ' . $e->getMessage(),
             ];
         }
     }

@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\ContactController as ApiContactController;
 use App\Http\Controllers\Api\CampaignController as ApiCampaignController;
 use App\Http\Controllers\Api\MessageController as ApiMessageController;
 use App\Http\Controllers\Api\WebhookController as ApiWebhookController;
+use App\Http\Controllers\Api\TemplateController as ApiTemplateController;
+use App\Http\Controllers\Api\WabaAccountController as ApiWabaAccountController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,6 +75,20 @@ Route::prefix('v1')->group(function () {
             Route::post('/send-text', [ApiMessageController::class, 'sendText'])->name('api.messages.send-text');
             Route::post('/send-template', [ApiMessageController::class, 'sendTemplate'])->name('api.messages.send-template');
             Route::get('/{id}/status', [ApiMessageController::class, 'status'])->name('api.messages.status');
+        });
+
+        // Templates
+        Route::prefix('templates')->group(function () {
+            Route::get('/', [ApiTemplateController::class, 'index'])->name('api.templates.index');
+            Route::get('/{id}', [ApiTemplateController::class, 'show'])->name('api.templates.show');
+            Route::get('/waba/{wabaAccountId}', [ApiTemplateController::class, 'byWabaAccount'])->name('api.templates.by-waba');
+        });
+
+        // WABA Accounts
+        Route::prefix('waba-accounts')->group(function () {
+            Route::get('/', [ApiWabaAccountController::class, 'index'])->name('api.waba-accounts.index');
+            Route::get('/{id}', [ApiWabaAccountController::class, 'show'])->name('api.waba-accounts.show');
+            Route::get('/{id}/stats', [ApiWabaAccountController::class, 'stats'])->name('api.waba-accounts.stats');
         });
 
     });

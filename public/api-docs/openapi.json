@@ -51,6 +51,14 @@
     {
       "name": "Webhooks",
       "description": "Webhooks de WhatsApp"
+    },
+    {
+      "name": "Templates",
+      "description": "Gestión de plantillas de mensaje"
+    },
+    {
+      "name": "WABA Accounts",
+      "description": "Gestión de cuentas WhatsApp Business API"
     }
   ],
   "paths": {
@@ -785,6 +793,217 @@
           }
         }
       }
+    },
+    "/templates": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "Listar plantillas",
+        "description": "Obtiene una lista paginada de plantillas de mensaje",
+        "operationId": "listTemplates",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filtrar por estado",
+            "schema": {
+              "type": "string",
+              "enum": ["PENDING", "APPROVED", "REJECTED"]
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filtrar por categoría",
+            "schema": {
+              "type": "string",
+              "enum": ["MARKETING", "UTILITY", "AUTHENTICATION"]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Buscar por nombre o descripción",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Resultados por página (máx 100)",
+            "schema": {"type": "integer", "default": 15}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de plantillas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/templates/{id}": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "Obtener plantilla",
+        "description": "Obtiene una plantilla por ID",
+        "operationId": "getTemplate",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la plantilla",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plantilla encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Plantilla no encontrada"
+          }
+        }
+      }
+    },
+    "/templates/waba/{wabaAccountId}": {
+      "get": {
+        "tags": ["Templates"],
+        "summary": "Plantillas por cuenta WABA",
+        "description": "Obtiene las plantillas aprobadas de una cuenta WABA específica",
+        "operationId": "getTemplatesByWaba",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "wabaAccountId",
+            "in": "path",
+            "required": true,
+            "description": "ID de la cuenta WABA",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de plantillas aprobadas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateListSimpleResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waba-accounts": {
+      "get": {
+        "tags": ["WABA Accounts"],
+        "summary": "Listar cuentas WABA",
+        "description": "Obtiene todas las cuentas WhatsApp Business API del tenant",
+        "operationId": "listWabaAccounts",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filtrar por estado",
+            "schema": {
+              "type": "string",
+              "enum": ["active", "inactive", "suspended"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de cuentas WABA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WabaAccountListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waba-accounts/{id}": {
+      "get": {
+        "tags": ["WABA Accounts"],
+        "summary": "Obtener cuenta WABA",
+        "description": "Obtiene los detalles de una cuenta WABA",
+        "operationId": "getWabaAccount",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la cuenta WABA",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cuenta WABA encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WabaAccountResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cuenta WABA no encontrada"
+          }
+        }
+      }
+    },
+    "/waba-accounts/{id}/stats": {
+      "get": {
+        "tags": ["WABA Accounts"],
+        "summary": "Estadísticas de cuenta WABA",
+        "description": "Obtiene estadísticas de campañas y plantillas de una cuenta WABA",
+        "operationId": "getWabaAccountStats",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID de la cuenta WABA",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estadísticas de la cuenta WABA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WabaAccountStatsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1063,6 +1282,154 @@
           "last": {"type": "string"},
           "prev": {"type": "string", "nullable": true},
           "next": {"type": "string", "nullable": true}
+        }
+      },
+      "Template": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "name": {"type": "string"},
+          "language": {"type": "string", "example": "es_MX"},
+          "category": {"type": "string", "enum": ["MARKETING", "UTILITY", "AUTHENTICATION"]},
+          "status": {"type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"]},
+          "meta_template_id": {"type": "string", "nullable": true},
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {"type": "string", "enum": ["HEADER", "BODY", "FOOTER", "BUTTONS", "CAROUSEL"]},
+                "format": {"type": "string", "nullable": true},
+                "text": {"type": "string", "nullable": true}
+              }
+            }
+          },
+          "waba_account": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "integer"},
+              "name": {"type": "string"},
+              "phone_number": {"type": "string"}
+            }
+          },
+          "created_at": {"type": "string", "format": "date-time"},
+          "updated_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "TemplateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {"$ref": "#/components/schemas/Template"}
+        }
+      },
+      "TemplateListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/Template"}
+          },
+          "meta": {"$ref": "#/components/schemas/PaginationMeta"},
+          "links": {"$ref": "#/components/schemas/PaginationLinks"}
+        }
+      },
+      "TemplateListSimpleResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "integer"},
+                "name": {"type": "string"},
+                "language": {"type": "string"},
+                "category": {"type": "string"},
+                "status": {"type": "string"}
+              }
+            }
+          }
+        }
+      },
+      "WabaAccount": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer"},
+          "name": {"type": "string"},
+          "phone_number": {"type": "string"},
+          "phone_number_id": {"type": "string"},
+          "waba_id": {"type": "string"},
+          "business_account_id": {"type": "string"},
+          "status": {"type": "string", "enum": ["active", "inactive", "suspended"]},
+          "quality_rating": {"type": "string", "enum": ["green", "yellow", "red"]},
+          "settings": {"type": "object", "nullable": true},
+          "verified_at": {"type": "string", "format": "date-time", "nullable": true},
+          "last_sync_at": {"type": "string", "format": "date-time", "nullable": true}
+        }
+      },
+      "WabaAccountListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "integer"},
+                "name": {"type": "string"},
+                "phone_number": {"type": "string"},
+                "status": {"type": "string"},
+                "quality_rating": {"type": "string"},
+                "verified_at": {"type": "string", "format": "date-time", "nullable": true},
+                "last_sync_at": {"type": "string", "format": "date-time", "nullable": true}
+              }
+            }
+          }
+        }
+      },
+      "WabaAccountResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {"$ref": "#/components/schemas/WabaAccount"}
+        }
+      },
+      "WabaAccountStatsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "message": {"type": "string"},
+          "data": {
+            "type": "object",
+            "properties": {
+              "account": {
+                "type": "object",
+                "properties": {
+                  "id": {"type": "integer"},
+                  "name": {"type": "string"},
+                  "phone_number": {"type": "string"}
+                }
+              },
+              "statistics": {
+                "type": "object",
+                "properties": {
+                  "total_campaigns": {"type": "integer"},
+                  "active_campaigns": {"type": "integer"},
+                  "total_templates": {"type": "integer"},
+                  "approved_templates": {"type": "integer"}
+                }
+              }
+            }
+          }
         }
       }
     }

@@ -7,6 +7,7 @@ use App\Models\MessageTemplate;
 use App\Models\Contact;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class CampaignController extends BaseApiController
 {
@@ -15,28 +16,36 @@ class CampaignController extends BaseApiController
      */
     public function index(Request $request): JsonResponse
     {
-        $tenant = $request->user()->tenant;
+        try {
+            $tenant = $request->user()->tenant;
 
-        $query = Campaign::where('tenant_id', $tenant->id)
-            ->with(['template:id,name', 'wabaAccount:id,display_name']);
+            $query = Campaign::where('tenant_id', $tenant->id)
+                ->with(['messageTemplate:id,name', 'wabaAccount:id,name,phone_number']);
 
-        // Status filter
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            // Status filter
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // Date range filter
+            if ($request->filled('from_date')) {
+                $query->whereDate('created_at', '>=', $request->from_date);
+            }
+            if ($request->filled('to_date')) {
+                $query->whereDate('created_at', '<=', $request->to_date);
+            }
+
+            $perPage = min($request->get('per_page', 15), 100);
+            $campaigns = $query->latest()->paginate($perPage);
+
+            return $this->paginated($campaigns);
+        } catch (\Exception $e) {
+            Log::error('API Campaign index error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return $this->error('Error al listar campañas: ' . $e->getMessage(), 500);
         }
-
-        // Date range filter
-        if ($request->filled('from_date')) {
-            $query->whereDate('created_at', '>=', $request->from_date);
-        }
-        if ($request->filled('to_date')) {
-            $query->whereDate('created_at', '<=', $request->to_date);
-        }
-
-        $perPage = min($request->get('per_page', 15), 100);
-        $campaigns = $query->latest()->paginate($perPage);
-
-        return $this->paginated($campaigns);
     }
 
     /**
@@ -44,18 +53,27 @@ class CampaignController extends BaseApiController
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $tenant = $request->user()->tenant;
+        try {
+            $tenant = $request->user()->tenant;
 
-        $campaign = Campaign::where('tenant_id', $tenant->id)
-            ->with(['template', 'wabaAccount', 'recipients'])
-            ->where('id', $id)
-            ->first();
+            $campaign = Campaign::where('tenant_id', $tenant->id)
+                ->with(['messageTemplate', 'wabaAccount', 'messages'])
+                ->where('id', $id)
+                ->first();
 
-        if (!$campaign) {
-            return $this->error('Campaña no encontrada', 404);
+            if (!$campaign) {
+                return $this->error('Campaña no encontrada', 404);
+            }
+
+            return $this->success($campaign);
+        } catch (\Exception $e) {
+            Log::error('API Campaign show error', [
+                'id' => $id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return $this->error('Error al obtener campaña: ' . $e->getMessage(), 500);
         }
-
-        return $this->success($campaign);
     }
 
     /**
@@ -112,17 +130,20 @@ class CampaignController extends BaseApiController
         if (!empty($validated['contact_ids'])) {
             $contacts = Contact::where('tenant_id', $tenant->id)
                 ->whereIn('id', $validated['contact_ids'])
-                ->pluck('id');
+                ->get();
 
-            foreach ($contacts as $contactId) {
-                $campaign->recipients()->create([
-                    'contact_id' => $contactId,
-                    'status' => 'pending',
+            foreach ($contacts as $contact) {
+                $campaign->messages()->create([
+                    'contact_id' => $contact->id,
+                    'phone_number' => $contact->phone,
+                    'status' => 'PENDING',
                 ]);
             }
+
+            $campaign->update(['total_recipients' => $contacts->count()]);
         }
 
-        $campaign->load(['template:id,name', 'wabaAccount:id,display_name']);
+        $campaign->load(['messageTemplate:id,name', 'wabaAccount:id,name,phone_number']);
 
         return $this->success($campaign, 'Campaña creada exitosamente', 201);
     }
@@ -189,40 +210,49 @@ class CampaignController extends BaseApiController
      */
     public function stats(Request $request, int $id): JsonResponse
     {
-        $tenant = $request->user()->tenant;
+        try {
+            $tenant = $request->user()->tenant;
 
-        $campaign = Campaign::where('tenant_id', $tenant->id)
-            ->where('id', $id)
-            ->first();
+            $campaign = Campaign::where('tenant_id', $tenant->id)
+                ->where('id', $id)
+                ->first();
 
-        if (!$campaign) {
-            return $this->error('Campaña no encontrada', 404);
+            if (!$campaign) {
+                return $this->error('Campaña no encontrada', 404);
+            }
+
+            $stats = [
+                'total_recipients' => $campaign->messages()->count(),
+                'sent' => $campaign->messages()->where('status', 'SENT')->count(),
+                'delivered' => $campaign->messages()->where('status', 'DELIVERED')->count(),
+                'read' => $campaign->messages()->where('status', 'READ')->count(),
+                'failed' => $campaign->messages()->where('status', 'FAILED')->count(),
+                'pending' => $campaign->messages()->where('status', 'PENDING')->count(),
+            ];
+
+            $stats['delivery_rate'] = $stats['total_recipients'] > 0
+                ? round(($stats['delivered'] / $stats['total_recipients']) * 100, 2)
+                : 0;
+
+            $stats['read_rate'] = $stats['delivered'] > 0
+                ? round(($stats['read'] / $stats['delivered']) * 100, 2)
+                : 0;
+
+            return $this->success([
+                'campaign' => [
+                    'id' => $campaign->id,
+                    'name' => $campaign->name,
+                    'status' => $campaign->status,
+                ],
+                'statistics' => $stats,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('API Campaign stats error', [
+                'id' => $id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return $this->error('Error al obtener estadísticas: ' . $e->getMessage(), 500);
         }
-
-        $stats = [
-            'total_recipients' => $campaign->recipients()->count(),
-            'sent' => $campaign->recipients()->where('status', 'sent')->count(),
-            'delivered' => $campaign->recipients()->where('status', 'delivered')->count(),
-            'read' => $campaign->recipients()->where('status', 'read')->count(),
-            'failed' => $campaign->recipients()->where('status', 'failed')->count(),
-            'pending' => $campaign->recipients()->where('status', 'pending')->count(),
-        ];
-
-        $stats['delivery_rate'] = $stats['total_recipients'] > 0
-            ? round(($stats['delivered'] / $stats['total_recipients']) * 100, 2)
-            : 0;
-
-        $stats['read_rate'] = $stats['delivered'] > 0
-            ? round(($stats['read'] / $stats['delivered']) * 100, 2)
-            : 0;
-
-        return $this->success([
-            'campaign' => [
-                'id' => $campaign->id,
-                'name' => $campaign->name,
-                'status' => $campaign->status,
-            ],
-            'statistics' => $stats,
-        ]);
     }
 }

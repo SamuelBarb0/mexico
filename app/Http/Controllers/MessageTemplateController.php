@@ -224,18 +224,25 @@ class MessageTemplateController extends Controller
         Gate::authorize('update', $template);
 
         if (!$template->isDraft()) {
-            return back()->withErrors(['error' => 'Solo se pueden enviar plantillas en borrador']);
+            return redirect()
+                ->route('templates.show', $template)
+                ->with('error', 'Solo se pueden enviar plantillas en borrador');
         }
 
         $result = $this->templateService->submitToMeta($template);
 
         if ($result['success']) {
+            // Refresh template to get updated status
+            $template->refresh();
+
             return redirect()
                 ->route('templates.show', $template)
                 ->with('success', $result['message']);
         }
 
-        return back()->withErrors(['error' => $result['error']]);
+        return redirect()
+            ->route('templates.show', $template)
+            ->with('error', $result['error']);
     }
 
     /**
@@ -253,7 +260,9 @@ class MessageTemplateController extends Controller
                 ->with('success', 'Estado sincronizado con Meta');
         }
 
-        return back()->withErrors(['error' => $result['error']]);
+        return redirect()
+            ->route('templates.show', $template)
+            ->with('error', $result['error']);
     }
 
     /**
