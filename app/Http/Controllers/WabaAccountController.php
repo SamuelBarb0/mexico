@@ -230,17 +230,23 @@ class WabaAccountController extends Controller
      */
     private function createOrUpdateWabaAccount($phoneNumberId, $wabaId, $businessId, $name, $phoneNumber, $qualityRating, $accessToken, $userID)
     {
+        // Use the global System User Token if available, otherwise fall back to user token
+        $globalToken = config('services.meta.access_token');
+        $tokenToUse = !empty($globalToken) ? $globalToken : $accessToken;
+        $tokenSource = !empty($globalToken) ? 'system_user' : 'facebook_login';
+
         // Check if already exists
         $existingWaba = WabaAccount::where('phone_number_id', $phoneNumberId)
             ->where('tenant_id', auth()->user()->tenant_id)
             ->first();
 
         if ($existingWaba) {
-            $existingWaba->update(['access_token' => $accessToken]);
+            $existingWaba->update(['access_token' => $tokenToUse]);
 
             Log::info('WABA Account token updated', [
                 'waba_account_id' => $existingWaba->id,
-                'phone_number_id' => $phoneNumberId
+                'phone_number_id' => $phoneNumberId,
+                'token_source' => $tokenSource
             ]);
 
             return response()->json([
@@ -250,7 +256,7 @@ class WabaAccountController extends Controller
             ]);
         }
 
-        // Create new WABA account
+        // Create new WABA account with System User Token
         $wabaAccount = WabaAccount::create([
             'tenant_id' => auth()->user()->tenant_id,
             'name' => $name ?: 'WhatsApp Business',
@@ -258,12 +264,13 @@ class WabaAccountController extends Controller
             'phone_number_id' => $phoneNumberId,
             'business_account_id' => $businessId ?: '',
             'waba_id' => $wabaId ?: '',
-            'access_token' => $accessToken,
+            'access_token' => $tokenToUse,
             'status' => 'active',
             'quality_rating' => strtolower($qualityRating ?: 'unknown'),
             'settings' => [
                 'facebook_user_id' => $userID,
                 'connected_via' => 'facebook_login',
+                'token_source' => $tokenSource,
                 'connected_at' => now()->toIso8601String()
             ]
         ]);
@@ -271,7 +278,8 @@ class WabaAccountController extends Controller
         Log::info('WABA Account created via Facebook Login', [
             'waba_account_id' => $wabaAccount->id,
             'tenant_id' => auth()->user()->tenant_id,
-            'phone_number' => $phoneNumber
+            'phone_number' => $phoneNumber,
+            'token_source' => $tokenSource
         ]);
 
         return response()->json([
