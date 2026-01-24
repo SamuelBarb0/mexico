@@ -53,26 +53,6 @@
         </div>
 
         <div>
-            <h3 class="text-sm font-medium text-gray-500">Estado</h3>
-            <p class="mt-1">
-                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
-                    {{ $wabaAccount->status === 'active' ? 'bg-green-100 text-green-800' :
-                       ($wabaAccount->status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                       ($wabaAccount->status === 'suspended' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800')) }}">
-                    @if($wabaAccount->status === 'active')
-                        Activa
-                    @elseif($wabaAccount->status === 'pending')
-                        Pendiente
-                    @elseif($wabaAccount->status === 'suspended')
-                        Suspendida
-                    @else
-                        Inactiva
-                    @endif
-                </span>
-            </p>
-        </div>
-
-        <div>
             <h3 class="text-sm font-medium text-gray-500">Phone Number ID</h3>
             <p class="mt-1 text-lg text-gray-900 font-mono">{{ $wabaAccount->phone_number_id }}</p>
         </div>
@@ -85,39 +65,6 @@
         <div>
             <h3 class="text-sm font-medium text-gray-500">WABA ID</h3>
             <p class="mt-1 text-lg text-gray-900 font-mono">{{ $wabaAccount->waba_id }}</p>
-        </div>
-
-        <div>
-            <h3 class="text-sm font-medium text-gray-500">Calificación de Calidad</h3>
-            <p class="mt-1">
-                <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full
-                    {{ $wabaAccount->quality_rating === 'green' ? 'bg-green-100 text-green-800' :
-                       ($wabaAccount->quality_rating === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
-                       ($wabaAccount->quality_rating === 'red' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800')) }}">
-                    {{ ucfirst($wabaAccount->quality_rating) }}
-                </span>
-            </p>
-        </div>
-
-        <div>
-            <h3 class="text-sm font-medium text-gray-500">Cuenta Verificada</h3>
-            <p class="mt-1 text-lg">
-                @if($wabaAccount->is_verified)
-                    <span class="inline-flex items-center text-green-600">
-                        <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        Verificada
-                    </span>
-                @else
-                    <span class="inline-flex items-center text-gray-500">
-                        <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                        </svg>
-                        No Verificada
-                    </span>
-                @endif
-            </p>
         </div>
     </div>
 

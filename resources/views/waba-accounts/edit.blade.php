@@ -65,37 +65,6 @@
                 <p class="mt-1 text-sm text-gray-500">WhatsApp Business Account ID</p>
             </div>
 
-            <div>
-                <label for="status" class="block text-sm font-medium text-gray-700">Estado</label>
-                <select name="status" id="status"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <option value="pending" {{ old('status', $wabaAccount->status) === 'pending' ? 'selected' : '' }}>Pendiente</option>
-                    <option value="active" {{ old('status', $wabaAccount->status) === 'active' ? 'selected' : '' }}>Activa</option>
-                    <option value="inactive" {{ old('status', $wabaAccount->status) === 'inactive' ? 'selected' : '' }}>Inactiva</option>
-                    <option value="suspended" {{ old('status', $wabaAccount->status) === 'suspended' ? 'selected' : '' }}>Suspendida</option>
-                </select>
-            </div>
-
-            <div>
-                <label for="quality_rating" class="block text-sm font-medium text-gray-700">Calificación de Calidad</label>
-                <select name="quality_rating" id="quality_rating"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <option value="unknown" {{ old('quality_rating', $wabaAccount->quality_rating) === 'unknown' ? 'selected' : '' }}>Desconocido</option>
-                    <option value="green" {{ old('quality_rating', $wabaAccount->quality_rating) === 'green' ? 'selected' : '' }}>Verde</option>
-                    <option value="yellow" {{ old('quality_rating', $wabaAccount->quality_rating) === 'yellow' ? 'selected' : '' }}>Amarillo</option>
-                    <option value="red" {{ old('quality_rating', $wabaAccount->quality_rating) === 'red' ? 'selected' : '' }}>Rojo</option>
-                </select>
-            </div>
-
-            <div>
-                <label for="is_verified" class="block text-sm font-medium text-gray-700">Verificado</label>
-                <select name="is_verified" id="is_verified"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <option value="0" {{ old('is_verified', $wabaAccount->is_verified ? '1' : '0') === '0' ? 'selected' : '' }}>No</option>
-                    <option value="1" {{ old('is_verified', $wabaAccount->is_verified ? '1' : '0') === '1' ? 'selected' : '' }}>Sí</option>
-                </select>
-            </div>
-
             <div class="md:col-span-2">
                 <label for="access_token" class="block text-sm font-medium text-gray-700">Access Token *</label>
                 <textarea name="access_token" id="access_token" rows="2" required
