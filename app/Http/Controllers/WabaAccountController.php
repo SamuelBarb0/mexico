@@ -33,6 +33,7 @@ class WabaAccountController extends Controller
         try {
             $accessToken = $request->input('access_token');
             $userID = $request->input('user_id');
+            $code = $request->input('code'); // Embedded Signup code
 
             if (!$accessToken) {
                 return response()->json([
@@ -44,7 +45,18 @@ class WabaAccountController extends Controller
             $apiVersion = config('services.facebook.api_version', 'v21.0');
             $graphUrl = "https://graph.facebook.com/{$apiVersion}";
 
-            Log::info('Facebook callback started', ['user_id' => $userID]);
+            Log::info('Facebook callback started', [
+                'user_id' => $userID,
+                'has_code' => !empty($code)
+            ]);
+
+            // If we have a code from Embedded Signup, exchange it for session info
+            if (!empty($code)) {
+                $embeddedResult = $this->handleEmbeddedSignupCode($code, $graphUrl);
+                if ($embeddedResult) {
+                    return $embeddedResult;
+                }
+            }
 
             // If connecting a specific account (from selector)
             if ($request->input('connect_specific')) {
@@ -109,6 +121,86 @@ class WabaAccountController extends Controller
                 'success' => false,
                 'message' => 'Error al procesar la conexión: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Handle WhatsApp Embedded Signup code exchange
+     * This extracts WABA info from the session created during Embedded Signup
+     */
+    private function handleEmbeddedSignupCode($code, $graphUrl)
+    {
+        try {
+            $appId = config('services.facebook.app_id');
+            $appSecret = config('services.facebook.app_secret');
+
+            if (empty($appSecret)) {
+                Log::warning('FACEBOOK_APP_SECRET not configured, skipping code exchange');
+                return null;
+            }
+
+            // Exchange code for access token
+            $tokenResponse = Http::get("{$graphUrl}/oauth/access_token", [
+                'client_id' => $appId,
+                'client_secret' => $appSecret,
+                'code' => $code
+            ]);
+
+            Log::info('Embedded Signup token exchange', ['response' => $tokenResponse->json()]);
+
+            if (!$tokenResponse->successful()) {
+                Log::error('Failed to exchange Embedded Signup code', ['response' => $tokenResponse->json()]);
+                return null;
+            }
+
+            $tokenData = $tokenResponse->json();
+            $accessToken = $tokenData['access_token'] ?? null;
+
+            if (!$accessToken) {
+                return null;
+            }
+
+            // Get debug info about the token to find the WABA
+            $debugResponse = Http::get("{$graphUrl}/debug_token", [
+                'input_token' => $accessToken,
+                'access_token' => "{$appId}|{$appSecret}"
+            ]);
+
+            Log::info('Embedded Signup debug token', ['response' => $debugResponse->json()]);
+
+            // The Embedded Signup returns a user token, use it to get WABA info
+            // Try to get the shared WABA from the response
+            $wabaAccounts = $this->fetchUserWabaAccounts($accessToken, $graphUrl);
+
+            if (!empty($wabaAccounts)) {
+                // Get only non-connected accounts
+                $newAccounts = array_filter($wabaAccounts, fn($acc) => !$acc['already_connected']);
+
+                if (count($newAccounts) === 1) {
+                    $account = array_values($newAccounts)[0];
+
+                    // Use the global System User token for this account
+                    return $this->createOrUpdateWabaAccount(
+                        $account['phone_number_id'],
+                        $account['waba_id'],
+                        $account['business_id'],
+                        $account['name'],
+                        $account['phone_number'],
+                        $account['quality_rating'] ?? 'unknown',
+                        $accessToken,
+                        null
+                    );
+                }
+            }
+
+            // If we couldn't extract directly, return null to continue with standard flow
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('Error handling Embedded Signup code', [
+                'error' => $e->getMessage()
+            ]);
+            return null;
         }
     }
 

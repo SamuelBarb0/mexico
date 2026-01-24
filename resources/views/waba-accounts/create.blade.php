@@ -211,8 +211,8 @@
         document.getElementById('loading-state').classList.remove('hidden');
         document.getElementById('fb-embedded-signup-container').classList.add('hidden');
 
-        // Standard Facebook Login (NOT Embedded Signup)
-        // This works without being a BSP/TP
+        // WhatsApp Embedded Signup - This creates/migrates WABA accounts linked to YOUR business
+        // Reference: https://developers.facebook.com/docs/whatsapp/embedded-signup
         FB.login(function(response) {
             console.log('FB.login response:', response);
 
@@ -220,21 +220,33 @@
                 const accessToken = response.authResponse.accessToken;
                 const userID = response.authResponse.userID;
 
-                // Send to backend to fetch WABA accounts
-                fetchWabaAccounts(accessToken, userID);
+                // Check if we got a code from Embedded Signup (contains WABA info)
+                const code = response.authResponse.code;
+
+                // Send to backend to fetch/create WABA accounts
+                fetchWabaAccounts(accessToken, userID, code);
             } else {
                 document.getElementById('loading-state').classList.add('hidden');
                 document.getElementById('fb-embedded-signup-container').classList.remove('hidden');
                 showError('Inicio de sesión cancelado o no autorizado.');
             }
         }, {
-            // Standard OAuth scopes for WhatsApp Business Management
+            // WhatsApp Embedded Signup configuration
+            config_id: '{{ config("services.facebook.config_id", "") }}', // WhatsApp Embedded Signup Config ID
+            response_type: 'code',
+            override_default_response_type: true,
             scope: 'business_management,whatsapp_business_management,whatsapp_business_messaging',
-            return_scopes: true
+            extras: {
+                setup: {
+                    // Preselect business if available
+                },
+                featureType: '',
+                sessionInfoVersion: 2
+            }
         });
     }
 
-    function fetchWabaAccounts(accessToken, userID) {
+    function fetchWabaAccounts(accessToken, userID, code = null) {
         // First, try to get WABA accounts from the backend
         fetch('{{ route("waba-accounts.facebook.callback") }}', {
             method: 'POST',
@@ -244,7 +256,8 @@
             },
             body: JSON.stringify({
                 access_token: accessToken,
-                user_id: userID
+                user_id: userID,
+                code: code // Embedded Signup code containing WABA info
             })
         })
         .then(response => response.json())
