@@ -420,9 +420,34 @@ class CampaignController extends Controller
         $targetAudience = $campaign->target_audience;
         $query = Contact::query();
 
-        switch ($targetAudience['type']) {
+        \Log::info('getTargetContacts - Filtering contacts', [
+            'campaign_id' => $campaign->id,
+            'target_audience' => $targetAudience,
+        ]);
+
+        switch ($targetAudience['type'] ?? 'all') {
             case 'all':
-                // All contacts
+                // All contacts - no additional filter
+                break;
+
+            case 'client':
+                // Contacts from specific client
+                if (!empty($targetAudience['client_id'])) {
+                    $query->where('client_id', $targetAudience['client_id']);
+                    \Log::info('Filtering by client_id', ['client_id' => $targetAudience['client_id']]);
+                }
+                break;
+
+            case 'status':
+                // Contacts with specific status (override the default 'active' filter below)
+                if (!empty($targetAudience['status'])) {
+                    $query->where('status', $targetAudience['status']);
+                    \Log::info('Filtering by status', ['status' => $targetAudience['status']]);
+                    // Return early to avoid the default 'active' filter
+                    return $query->whereNotNull('phone')
+                        ->where('phone', '!=', '')
+                        ->get();
+                }
                 break;
 
             case 'lists':
@@ -435,11 +460,16 @@ class CampaignController extends Controller
                 break;
 
             case 'tags':
-                // Contacts with specific tags
+                // Contacts with specific tags (stored as JSON array in contacts.tags column)
                 if (!empty($targetAudience['tags'])) {
-                    $query->whereHas('tags', function ($q) use ($targetAudience) {
-                        $q->whereIn('tags.id', $targetAudience['tags']);
+                    $tags = $targetAudience['tags'];
+                    $query->where(function ($q) use ($tags) {
+                        foreach ($tags as $tag) {
+                            // Use whereJsonContains for JSON column
+                            $q->orWhereJsonContains('tags', $tag);
+                        }
                     });
+                    \Log::info('Filtering by tags', ['tags' => $tags]);
                 }
                 break;
 
@@ -453,12 +483,15 @@ class CampaignController extends Controller
                 break;
         }
 
-        // Only active contacts with valid phone numbers
+        // Only active contacts with valid phone numbers (default filter)
         $query->where('status', 'active')
             ->whereNotNull('phone')
             ->where('phone', '!=', '');
 
-        return $query->get();
+        $contacts = $query->get();
+        \Log::info('getTargetContacts - Contacts found', ['count' => $contacts->count()]);
+
+        return $contacts;
     }
 
     /**

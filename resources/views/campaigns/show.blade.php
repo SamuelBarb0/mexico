@@ -198,6 +198,10 @@
                             Tipo:
                             @if($campaign->target_audience['type'] === 'all')
                                 Todos los contactos activos
+                            @elseif($campaign->target_audience['type'] === 'client')
+                                Contactos de un cliente específico
+                            @elseif($campaign->target_audience['type'] === 'status')
+                                Contactos por estado
                             @elseif($campaign->target_audience['type'] === 'lists')
                                 Contactos de listas específicas
                             @elseif($campaign->target_audience['type'] === 'tags')
@@ -206,6 +210,16 @@
                                 Filtro personalizado
                             @endif
                         </p>
+                        @if($campaign->target_audience['type'] === 'client' && !empty($campaign->target_audience['client_id']))
+                            @php $client = \App\Models\Client::find($campaign->target_audience['client_id']); @endphp
+                            @if($client)
+                                <p class="text-sm text-blue-700 mt-1">Cliente: <strong>{{ $client->name }}</strong></p>
+                            @endif
+                        @elseif($campaign->target_audience['type'] === 'status' && !empty($campaign->target_audience['status']))
+                            <p class="text-sm text-blue-700 mt-1">Estado: <strong>{{ ucfirst($campaign->target_audience['status']) }}</strong></p>
+                        @elseif($campaign->target_audience['type'] === 'tags' && !empty($campaign->target_audience['tags']))
+                            <p class="text-sm text-blue-700 mt-1">Etiquetas: <strong>{{ implode(', ', $campaign->target_audience['tags']) }}</strong></p>
+                        @endif
                         <p class="text-sm text-blue-700 mt-2">Total de destinatarios: <strong>{{ number_format($campaign->total_recipients) }}</strong></p>
                     @else
                         <p class="text-sm text-gray-600">No definida</p>
