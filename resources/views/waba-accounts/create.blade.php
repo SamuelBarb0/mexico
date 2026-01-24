@@ -278,7 +278,33 @@
         const container = document.getElementById('fb-embedded-signup-container');
         container.classList.remove('hidden');
 
-        let accountsHtml = accounts.map(acc => `
+        // Separate connected and available accounts
+        const connectedAccounts = accounts.filter(acc => acc.already_connected);
+        const availableAccounts = accounts.filter(acc => !acc.already_connected);
+
+        // Check if all accounts are already connected
+        if (availableAccounts.length === 0) {
+            container.innerHTML = `
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                    <svg class="w-16 h-16 text-blue-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h3 class="text-lg font-bold text-blue-900 mb-2">Todas las cuentas ya están conectadas</h3>
+                    <p class="text-blue-800 mb-4">Todas tus cuentas de WhatsApp Business ya están vinculadas a esta plataforma.</p>
+                    <a href="{{ route('waba-accounts.index') }}"
+                       class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition cursor-pointer">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                        </svg>
+                        Ver mis cuentas conectadas
+                    </a>
+                </div>
+            `;
+            return;
+        }
+
+        // Build HTML for available accounts (selectable)
+        let availableHtml = availableAccounts.map(acc => `
             <div class="border border-gray-200 rounded-lg p-4 hover:border-green-500 hover:bg-green-50 cursor-pointer transition-all account-option"
                  data-phone-id="${acc.phone_number_id}"
                  data-waba-id="${acc.waba_id}"
@@ -288,8 +314,8 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h4 class="font-bold text-gray-900">${acc.name}</h4>
-                        <p class="text-sm text-gray-600">${acc.phone_number}</p>
-                        ${acc.quality_rating ? `<span class="inline-block mt-1 px-2 py-0.5 text-xs rounded-full ${acc.quality_rating === 'GREEN' ? 'bg-green-100 text-green-800' : acc.quality_rating === 'YELLOW' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">${acc.quality_rating}</span>` : ''}
+                        <p class="text-sm text-gray-600">${acc.phone_number || 'Sin número'}</p>
+                        ${acc.quality_rating ? `<span class="inline-block mt-1 px-2 py-0.5 text-xs rounded-full ${acc.quality_rating === 'GREEN' ? 'bg-green-100 text-green-800' : acc.quality_rating === 'YELLOW' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}">${acc.quality_rating}</span>` : ''}
                     </div>
                     <svg class="w-6 h-6 text-gray-400 check-icon hidden" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
@@ -298,11 +324,36 @@
             </div>
         `).join('');
 
+        // Build HTML for already connected accounts (disabled)
+        let connectedHtml = connectedAccounts.length > 0 ? `
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <p class="text-sm text-gray-500 mb-2 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    Ya conectadas:
+                </p>
+                ${connectedAccounts.map(acc => `
+                    <div class="border border-green-200 bg-green-50 rounded-lg p-3 opacity-60 mb-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-semibold text-gray-700">${acc.name}</h4>
+                                <p class="text-sm text-gray-500">${acc.phone_number || 'Sin número'}</p>
+                            </div>
+                            <span class="px-2 py-1 text-xs bg-green-200 text-green-800 rounded-full">Conectada</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : '';
+
         container.innerHTML = `
             <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <h3 class="font-bold text-lg text-gray-900 mb-4">Selecciona la cuenta a conectar</h3>
+                <h3 class="font-bold text-lg text-gray-900 mb-2">Selecciona la cuenta a conectar</h3>
+                <p class="text-sm text-gray-600 mb-4">Encontramos ${availableAccounts.length} cuenta(s) disponible(s) para conectar</p>
                 <div class="space-y-3 max-h-64 overflow-y-auto mb-4">
-                    ${accountsHtml}
+                    ${availableHtml}
+                    ${connectedHtml}
                 </div>
                 <button id="connect-selected-btn" onclick="connectSelectedAccount('${accessToken}', '${userID}')"
                         class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" disabled>
@@ -311,7 +362,7 @@
             </div>
         `;
 
-        // Add click handlers for account selection
+        // Add click handlers for account selection (only for available accounts)
         document.querySelectorAll('.account-option').forEach(option => {
             option.addEventListener('click', function() {
                 document.querySelectorAll('.account-option').forEach(opt => {

@@ -62,9 +62,23 @@ class WabaAccountController extends Controller
                 ]);
             }
 
-            // If only one account, connect it directly
-            if (count($wabaAccounts) === 1) {
-                $account = $wabaAccounts[0];
+            // Filter out accounts that are already connected
+            $notConnectedAccounts = array_filter($wabaAccounts, function($acc) {
+                return !$acc['already_connected'];
+            });
+
+            // If all accounts are already connected
+            if (empty($notConnectedAccounts)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Todas las cuentas de WhatsApp Business ya están conectadas.',
+                    'waba_accounts' => $wabaAccounts
+                ]);
+            }
+
+            // If only one account not connected, connect it directly
+            if (count($notConnectedAccounts) === 1) {
+                $account = array_values($notConnectedAccounts)[0];
                 return $this->createOrUpdateWabaAccount(
                     $account['phone_number_id'],
                     $account['waba_id'],
@@ -77,11 +91,12 @@ class WabaAccountController extends Controller
                 );
             }
 
-            // Multiple accounts - return list for user to select
+            // Multiple accounts available - return list for user to select
+            // Re-index the array and mark which ones are already connected
             return response()->json([
                 'success' => false,
                 'message' => 'Se encontraron múltiples cuentas. Selecciona cuál deseas conectar.',
-                'waba_accounts' => $wabaAccounts
+                'waba_accounts' => array_values($wabaAccounts)
             ]);
 
         } catch (\Exception $e) {
