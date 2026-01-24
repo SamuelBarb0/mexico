@@ -35,13 +35,19 @@
 
             <div>
                 <label for="phone_number_id" class="block text-sm font-medium text-gray-700">Phone Number ID *</label>
-                <input type="text" name="phone_number_id" id="phone_number_id" required
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('phone_number_id') border-red-500 @enderror"
-                    value="{{ old('phone_number_id', $wabaAccount->phone_number_id) }}">
+                <div class="flex gap-2">
+                    <input type="text" name="phone_number_id" id="phone_number_id" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('phone_number_id') border-red-500 @enderror"
+                        value="{{ old('phone_number_id', $wabaAccount->phone_number_id) }}">
+                    <button type="button" onclick="lookupPhoneNumberId()" class="mt-1 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-sm font-medium whitespace-nowrap cursor-pointer">
+                        🔍 Buscar ID
+                    </button>
+                </div>
                 @error('phone_number_id')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
                 <p class="mt-1 text-sm text-gray-500">ID del número de teléfono de WhatsApp Business</p>
+                <div id="phone_lookup_result" class="mt-2 hidden"></div>
             </div>
 
             <div>
@@ -132,3 +138,64 @@
     </form>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+async function lookupPhoneNumberId() {
+    const wabaId = document.getElementById('waba_id').value;
+    const resultDiv = document.getElementById('phone_lookup_result');
+
+    if (!wabaId) {
+        resultDiv.innerHTML = '<div class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">Por favor ingresa el WABA ID primero</div>';
+        resultDiv.classList.remove('hidden');
+        return;
+    }
+
+    resultDiv.innerHTML = '<div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">Buscando...</div>';
+    resultDiv.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`/waba-accounts/lookup-phone-numbers?waba_id=${encodeURIComponent(wabaId)}`);
+        const data = await response.json();
+
+        if (data.error) {
+            resultDiv.innerHTML = `<div class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <strong>Error:</strong> ${data.details || data.error}
+                ${data.error_code ? `<br><small>Código: ${data.error_code}</small>` : ''}
+            </div>`;
+            return;
+        }
+
+        if (data.phone_numbers && data.phone_numbers.length > 0) {
+            let html = '<div class="p-3 bg-green-50 border border-green-200 rounded-lg">';
+            html += '<p class="font-semibold text-green-800 mb-2">Números de teléfono encontrados:</p>';
+            html += '<ul class="space-y-2">';
+
+            data.phone_numbers.forEach(phone => {
+                html += `<li class="flex items-center justify-between bg-white p-2 rounded border">
+                    <div>
+                        <span class="font-mono text-sm text-gray-800">${phone.display_phone_number || 'N/A'}</span>
+                        <br><small class="text-gray-500">ID: <strong>${phone.id}</strong></small>
+                    </div>
+                    <button type="button" onclick="usePhoneNumberId('${phone.id}')" class="px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs cursor-pointer">
+                        Usar este ID
+                    </button>
+                </li>`;
+            });
+
+            html += '</ul></div>';
+            resultDiv.innerHTML = html;
+        } else {
+            resultDiv.innerHTML = '<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700">No se encontraron números de teléfono para este WABA ID. Verifica que el System User tenga acceso a esta cuenta.</div>';
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">Error de conexión: ${error.message}</div>`;
+    }
+}
+
+function usePhoneNumberId(id) {
+    document.getElementById('phone_number_id').value = id;
+    document.getElementById('phone_lookup_result').innerHTML = '<div class="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700">✓ Phone Number ID actualizado. No olvides guardar los cambios.</div>';
+}
+</script>
+@endpush

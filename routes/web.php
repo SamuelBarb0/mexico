@@ -104,6 +104,7 @@ Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
     Route::post('/waba-accounts/{waba_account}/register', [WabaAccountController::class, 'register'])->name('waba-accounts.register');
     Route::post('/waba-accounts/{waba_account}/use-global-token', [WabaAccountController::class, 'useGlobalToken'])->name('waba-accounts.use-global-token');
     Route::get('/waba-accounts/debug-global-token', [WabaAccountController::class, 'debugGlobalToken'])->name('waba-accounts.debug-global-token');
+    Route::get('/waba-accounts/lookup-phone-numbers', [WabaAccountController::class, 'lookupPhoneNumbers'])->name('waba-accounts.lookup-phone-numbers');
 
     // Módulo de Plantillas de Mensajes
     Route::get('/templates/create', [MessageTemplateController::class, 'create'])->name('templates.create');

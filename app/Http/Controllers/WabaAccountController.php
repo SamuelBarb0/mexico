@@ -601,6 +601,51 @@ class WabaAccountController extends Controller
     }
 
     /**
+     * Lookup phone_number_id for a specific WABA ID
+     * This helps users find the correct phone_number_id when they only know the WABA ID
+     */
+    public function lookupPhoneNumbers(Request $request)
+    {
+        $wabaId = $request->input('waba_id');
+        $globalToken = config('services.meta.access_token');
+
+        if (empty($globalToken)) {
+            return response()->json(['error' => 'No META_ACCESS_TOKEN configured'], 400);
+        }
+
+        if (empty($wabaId)) {
+            return response()->json(['error' => 'waba_id is required'], 400);
+        }
+
+        $apiVersion = config('services.meta.api_version', 'v21.0');
+
+        // Query phone numbers for this WABA
+        $response = Http::withToken($globalToken)
+            ->get("https://graph.facebook.com/{$apiVersion}/{$wabaId}/phone_numbers", [
+                'fields' => 'id,display_phone_number,verified_name,quality_rating,code_verification_status,platform_type'
+            ]);
+
+        if (!$response->successful()) {
+            $error = $response->json();
+            return response()->json([
+                'error' => 'Failed to fetch phone numbers',
+                'details' => $error['error']['message'] ?? 'Unknown error',
+                'error_code' => $error['error']['code'] ?? null
+            ], 400);
+        }
+
+        $phones = $response->json('data', []);
+
+        return response()->json([
+            'waba_id' => $wabaId,
+            'phone_numbers' => $phones,
+            'message' => count($phones) > 0
+                ? 'Found ' . count($phones) . ' phone number(s). Use the "id" field as your phone_number_id.'
+                : 'No phone numbers found for this WABA ID. Make sure the System User has access to this WABA.'
+        ], 200, [], JSON_PRETTY_PRINT);
+    }
+
+    /**
      * Debug: List all WABA accounts accessible by the global token
      * This helps identify which accounts the System User has access to
      */
