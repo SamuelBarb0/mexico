@@ -50,10 +50,10 @@ return [
     ],
 
     'facebook' => [
-        'app_id' => env('FACEBOOK_APP_ID'),
+        'app_id' => env('FACEBOOK_APP_ID', env('META_APP_ID')), // Falls back to META_APP_ID
         'app_secret' => env('FACEBOOK_APP_SECRET'),
-        'config_id' => env('FACEBOOK_CONFIG_ID'),
-        'api_version' => env('FACEBOOK_API_VERSION', 'v18.0'),
+        'config_id' => env('FACEBOOK_CONFIG_ID'), // WhatsApp Embedded Signup Configuration ID
+        'api_version' => env('FACEBOOK_API_VERSION', env('META_API_VERSION', 'v21.0')),
     ],
 
 ];

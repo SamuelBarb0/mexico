@@ -254,6 +254,16 @@
                             Editar Campaña
                         </a>
                     @endif
+
+                    @if(in_array($campaign->status, ['draft', 'completed', 'failed', 'canceled']))
+                        <form action="{{ route('campaigns.destroy', $campaign) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar esta campaña? Esta acción no se puede deshacer.')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition shadow-lg cursor-pointer">
+                                <i class="bi bi-trash"></i> Eliminar Campaña
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
 

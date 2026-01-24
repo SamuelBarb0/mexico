@@ -4,6 +4,18 @@
 
 @section('content')
 <div class="space-y-6">
+    <!-- Flash Messages -->
+    @if(session('success'))
+        <div class="p-4 bg-green-100 border border-green-300 text-green-800 rounded-lg text-sm">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="p-4 bg-red-100 border border-red-300 text-red-800 rounded-lg text-sm">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <!-- Header con gradiente -->
     <div class="relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-700 to-violet-700 rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8">
         <div class="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
@@ -172,11 +184,25 @@
                                     @if($campaign->status === 'draft' && $campaign->total_recipients == 0)
                                         <form action="{{ route('campaigns.prepare', $campaign) }}" method="POST" class="inline">
                                             @csrf
-                                            <button type="submit" class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors inline-flex items-center">
+                                            <button type="submit" class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors inline-flex items-center cursor-pointer">
                                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                                                 </svg>
                                                 Preparar Campaña
+                                            </button>
+                                        </form>
+                                    @endif
+
+                                    {{-- Botón para eliminar campaña --}}
+                                    @if(in_array($campaign->status, ['draft', 'completed', 'failed', 'canceled']))
+                                        <form action="{{ route('campaigns.destroy', $campaign) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de eliminar esta campaña?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:text-red-800 font-semibold transition-colors inline-flex items-center cursor-pointer">
+                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                                Eliminar
                                             </button>
                                         </form>
                                     @endif

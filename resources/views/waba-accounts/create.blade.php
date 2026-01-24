@@ -156,7 +156,7 @@
     // Facebook App Configuration
     const FACEBOOK_APP_ID = '{{ config("services.facebook.app_id") }}';
     const FACEBOOK_CONFIG_ID = '{{ config("services.facebook.config_id") }}';
-    const REDIRECT_URI = '{{ route("waba-accounts.facebook.callback") }}';
+    const FACEBOOK_API_VERSION = '{{ config("services.facebook.api_version", "v21.0") }}';
 
     // Load Facebook SDK
     window.fbAsyncInit = function() {
@@ -164,7 +164,7 @@
             appId: FACEBOOK_APP_ID,
             autoLogAppEvents: true,
             xfbml: true,
-            version: 'v18.0'
+            version: FACEBOOK_API_VERSION
         });
 
         // Launch Facebook Embedded Signup
@@ -187,17 +187,6 @@
             showManualConnection();
             return;
         }
-
-        // Show loading state
-        document.getElementById('loading-state').classList.remove('hidden');
-
-        // Launch Embedded Signup
-        FB.Event.subscribe('messenger_checkbox', function(e) {
-            console.log('Facebook Embedded Signup event:', e);
-            if (e.event === 'checkbox') {
-                // User clicked the checkbox
-            }
-        });
 
         // Create Facebook Login Button
         const container = document.getElementById('fb-embedded-signup-container');
@@ -223,47 +212,103 @@
         // Show loading
         document.getElementById('loading-state').classList.remove('hidden');
 
+        // Callback for Embedded Signup
+        const sessionInfoListener = (event) => {
+            if (event.origin !== "https://www.facebook.com") return;
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'WA_EMBEDDED_SIGNUP') {
+                    // data will have: phone_number_id, waba_id
+                    console.log('Embedded Signup Data:', data);
+
+                    if (data.data && data.data.phone_number_id) {
+                        sendToBackend({
+                            phone_number_id: data.data.phone_number_id,
+                            waba_id: data.data.waba_id || ''
+                        });
+                    }
+                }
+            } catch (e) {
+                // Not JSON, ignore
+            }
+        };
+        window.addEventListener('message', sessionInfoListener);
+
         FB.login(function(response) {
+            console.log('FB.login response:', response);
+
             if (response.authResponse) {
                 const accessToken = response.authResponse.accessToken;
                 const userID = response.authResponse.userID;
 
-                // Send to backend
-                fetch('{{ route("waba-accounts.facebook.callback") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({
-                        access_token: accessToken,
-                        user_id: userID
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = '{{ route("waba-accounts.index") }}';
-                    } else {
-                        alert('Error: ' + data.message);
-                        document.getElementById('loading-state').classList.add('hidden');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error al conectar con Facebook');
-                    document.getElementById('loading-state').classList.add('hidden');
+                // Get signed request (contains phone_number_id for embedded signup)
+                const signedRequest = response.authResponse.signedRequest;
+
+                // Extract data from response
+                let phoneNumberId = null;
+                let wabaId = null;
+
+                // Check for embedded signup specific response fields
+                if (response.authResponse.phone_number_id) {
+                    phoneNumberId = response.authResponse.phone_number_id;
+                }
+                if (response.authResponse.waba_id) {
+                    wabaId = response.authResponse.waba_id;
+                }
+
+                sendToBackend({
+                    access_token: accessToken,
+                    user_id: userID,
+                    phone_number_id: phoneNumberId,
+                    waba_id: wabaId,
+                    signed_request: signedRequest
                 });
             } else {
                 document.getElementById('loading-state').classList.add('hidden');
                 console.log('User cancelled login or did not fully authorize.');
             }
         }, {
+            config_id: FACEBOOK_CONFIG_ID || undefined,
+            response_type: 'code',
+            override_default_response_type: true,
             scope: 'business_management,whatsapp_business_management,whatsapp_business_messaging',
             extras: {
                 feature: 'whatsapp_embedded_signup',
-                setup: {}
+                sessionInfoVersion: 2,
+                setup: {
+                    // Optional: Pre-fill business info
+                }
             }
+        });
+    }
+
+    function sendToBackend(data) {
+        fetch('{{ route("waba-accounts.facebook.callback") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            console.log('Backend response:', result);
+            if (result.success) {
+                // Show success message
+                alert('¡Cuenta conectada exitosamente!');
+                window.location.href = '{{ route("waba-accounts.index") }}';
+            } else {
+                alert('Error: ' + result.message);
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('manual-connection').classList.remove('hidden');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al conectar con Facebook. Por favor intenta la conexión manual.');
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('manual-connection').classList.remove('hidden');
         });
     }
 
