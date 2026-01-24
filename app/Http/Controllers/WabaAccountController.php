@@ -26,7 +26,7 @@ class WabaAccountController extends Controller
     }
 
     /**
-     * Handle Facebook Embedded Signup callback
+     * Handle Facebook Login callback - fetch user's WABA accounts
      */
     public function facebookCallback(Request $request)
     {
@@ -46,105 +46,43 @@ class WabaAccountController extends Controller
 
             Log::info('Facebook callback started', ['user_id' => $userID]);
 
-            // Step 1: Debug token to get permissions and verify
-            $debugResponse = Http::get("{$graphUrl}/debug_token", [
-                'input_token' => $accessToken,
-                'access_token' => config('services.facebook.app_id') . '|' . config('services.facebook.app_secret')
-            ]);
-
-            Log::info('Debug token response', ['response' => $debugResponse->json()]);
-
-            // Step 2: Get shared WABA IDs from the embedded signup response
-            $sharedWabaIds = $request->input('shared_waba_ids', []);
-            $phoneNumberId = $request->input('phone_number_id');
-
-            // If we got phone_number_id directly from embedded signup, use it
-            if ($phoneNumberId) {
-                return $this->createWabaFromPhoneNumber($phoneNumberId, $accessToken, $userID, $graphUrl);
+            // If connecting a specific account (from selector)
+            if ($request->input('connect_specific')) {
+                return $this->connectSpecificAccount($request, $accessToken, $userID);
             }
 
-            // Step 3: Get WhatsApp Business Accounts via Business Manager
-            $businessesResponse = Http::get("{$graphUrl}/me/businesses", [
-                'access_token' => $accessToken,
-                'fields' => 'id,name,owned_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}}'
-            ]);
+            // Fetch all WABA accounts the user has access to
+            $wabaAccounts = $this->fetchUserWabaAccounts($accessToken, $graphUrl);
 
-            Log::info('Businesses response', ['response' => $businessesResponse->json()]);
-
-            if (!$businessesResponse->successful()) {
-                // Try alternative: get WABAs directly
-                return $this->getWabasDirectly($accessToken, $userID, $graphUrl);
+            if (empty($wabaAccounts)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontraron cuentas de WhatsApp Business. Asegúrate de tener una cuenta WABA configurada en Meta Business Suite.',
+                    'waba_accounts' => []
+                ]);
             }
 
-            $businesses = $businessesResponse->json('data', []);
-
-            if (empty($businesses)) {
-                return $this->getWabasDirectly($accessToken, $userID, $graphUrl);
+            // If only one account, connect it directly
+            if (count($wabaAccounts) === 1) {
+                $account = $wabaAccounts[0];
+                return $this->createOrUpdateWabaAccount(
+                    $account['phone_number_id'],
+                    $account['waba_id'],
+                    $account['business_id'],
+                    $account['name'],
+                    $account['phone_number'],
+                    $account['quality_rating'] ?? 'unknown',
+                    $accessToken,
+                    $userID
+                );
             }
 
-            // Find WABA with phone numbers
-            foreach ($businesses as $business) {
-                $wabas = $business['owned_whatsapp_business_accounts']['data'] ?? [];
-
-                foreach ($wabas as $waba) {
-                    $phones = $waba['phone_numbers']['data'] ?? [];
-
-                    if (!empty($phones)) {
-                        $phone = $phones[0];
-
-                        // Check if already exists
-                        $existingWaba = WabaAccount::where('phone_number_id', $phone['id'])
-                            ->where('tenant_id', auth()->user()->tenant_id)
-                            ->first();
-
-                        if ($existingWaba) {
-                            // Update access token
-                            $existingWaba->update(['access_token' => $accessToken]);
-                            return response()->json([
-                                'success' => true,
-                                'message' => 'Cuenta ya existente, token actualizado',
-                                'waba_account' => $existingWaba
-                            ]);
-                        }
-
-                        // Create new WABA account
-                        $wabaAccount = WabaAccount::create([
-                            'tenant_id' => auth()->user()->tenant_id,
-                            'name' => $waba['name'] ?? $business['name'] ?? 'WhatsApp Business',
-                            'phone_number' => $phone['display_phone_number'] ?? '',
-                            'phone_number_id' => $phone['id'],
-                            'business_account_id' => $business['id'],
-                            'waba_id' => $waba['id'],
-                            'access_token' => $accessToken,
-                            'status' => 'active',
-                            'quality_rating' => strtolower($phone['quality_rating'] ?? 'unknown'),
-                            'settings' => [
-                                'facebook_user_id' => $userID,
-                                'verified_name' => $phone['verified_name'] ?? null,
-                                'connected_via' => 'facebook_embedded_signup',
-                                'connected_at' => now()->toIso8601String()
-                            ]
-                        ]);
-
-                        Log::info('WABA Account created via Facebook Embedded Signup', [
-                            'waba_account_id' => $wabaAccount->id,
-                            'tenant_id' => auth()->user()->tenant_id,
-                            'phone_number' => $phone['display_phone_number'] ?? ''
-                        ]);
-
-                        return response()->json([
-                            'success' => true,
-                            'message' => 'Cuenta conectada exitosamente',
-                            'waba_account' => $wabaAccount
-                        ]);
-                    }
-                }
-            }
-
+            // Multiple accounts - return list for user to select
             return response()->json([
                 'success' => false,
-                'message' => 'No se encontraron números de WhatsApp Business configurados. Asegúrate de completar la configuración en Facebook.'
-            ], 404);
+                'message' => 'Se encontraron múltiples cuentas. Selecciona cuál deseas conectar.',
+                'waba_accounts' => $wabaAccounts
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Error in Facebook callback', [
@@ -160,57 +98,123 @@ class WabaAccountController extends Controller
     }
 
     /**
-     * Try to get WABAs directly using the user token
+     * Fetch all WABA accounts the user has access to via Facebook Graph API
      */
-    private function getWabasDirectly($accessToken, $userID, $graphUrl)
+    private function fetchUserWabaAccounts($accessToken, $graphUrl)
     {
-        // Try getting WABA via shared_waba_id endpoint (for embedded signup)
-        $wabaResponse = Http::get("{$graphUrl}/{$userID}/assigned_business_asset_groups", [
+        $wabaAccounts = [];
+
+        // Method 1: Get businesses and their WABA accounts
+        $businessesResponse = Http::get("{$graphUrl}/me/businesses", [
             'access_token' => $accessToken,
-            'fields' => 'id,name'
+            'fields' => 'id,name,owned_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}}'
         ]);
 
-        Log::info('Assigned business assets response', ['response' => $wabaResponse->json()]);
+        Log::info('Businesses response', ['response' => $businessesResponse->json()]);
 
-        // Alternative: Try to get any accessible WABAs
-        $altResponse = Http::get("{$graphUrl}/me", [
-            'access_token' => $accessToken,
-            'fields' => 'id,name,accounts{whatsapp_business_account}'
-        ]);
+        if ($businessesResponse->successful()) {
+            $businesses = $businessesResponse->json('data', []);
 
-        Log::info('Me accounts response', ['response' => $altResponse->json()]);
+            foreach ($businesses as $business) {
+                $wabas = $business['owned_whatsapp_business_accounts']['data'] ?? [];
 
-        return response()->json([
-            'success' => false,
-            'message' => 'No se encontraron cuentas de WhatsApp Business. Por favor usa la conexión manual.',
-            'debug' => [
-                'user_id' => $userID,
-                'has_token' => !empty($accessToken)
-            ]
-        ], 404);
+                foreach ($wabas as $waba) {
+                    $phones = $waba['phone_numbers']['data'] ?? [];
+
+                    foreach ($phones as $phone) {
+                        // Check if already connected to this tenant
+                        $existing = WabaAccount::where('phone_number_id', $phone['id'])
+                            ->where('tenant_id', auth()->user()->tenant_id)
+                            ->first();
+
+                        $wabaAccounts[] = [
+                            'phone_number_id' => $phone['id'],
+                            'waba_id' => $waba['id'],
+                            'business_id' => $business['id'],
+                            'name' => $waba['name'] ?? $business['name'] ?? 'WhatsApp Business',
+                            'phone_number' => $phone['display_phone_number'] ?? '',
+                            'verified_name' => $phone['verified_name'] ?? null,
+                            'quality_rating' => $phone['quality_rating'] ?? 'UNKNOWN',
+                            'already_connected' => $existing !== null
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Method 2: Try client_whatsapp_business_accounts (alternative endpoint)
+        if (empty($wabaAccounts)) {
+            $altResponse = Http::get("{$graphUrl}/me/client_whatsapp_business_accounts", [
+                'access_token' => $accessToken,
+                'fields' => 'id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}'
+            ]);
+
+            Log::info('Client WABA response', ['response' => $altResponse->json()]);
+
+            if ($altResponse->successful()) {
+                $wabas = $altResponse->json('data', []);
+
+                foreach ($wabas as $waba) {
+                    $phones = $waba['phone_numbers']['data'] ?? [];
+
+                    foreach ($phones as $phone) {
+                        $existing = WabaAccount::where('phone_number_id', $phone['id'])
+                            ->where('tenant_id', auth()->user()->tenant_id)
+                            ->first();
+
+                        $wabaAccounts[] = [
+                            'phone_number_id' => $phone['id'],
+                            'waba_id' => $waba['id'],
+                            'business_id' => '',
+                            'name' => $waba['name'] ?? 'WhatsApp Business',
+                            'phone_number' => $phone['display_phone_number'] ?? '',
+                            'verified_name' => $phone['verified_name'] ?? null,
+                            'quality_rating' => $phone['quality_rating'] ?? 'UNKNOWN',
+                            'already_connected' => $existing !== null
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $wabaAccounts;
     }
 
     /**
-     * Create WABA from a phone number ID (direct from embedded signup)
+     * Connect a specific WABA account selected by the user
      */
-    private function createWabaFromPhoneNumber($phoneNumberId, $accessToken, $userID, $graphUrl)
+    private function connectSpecificAccount(Request $request, $accessToken, $userID)
     {
-        // Get phone number details
-        $phoneResponse = Http::get("{$graphUrl}/{$phoneNumberId}", [
-            'access_token' => $accessToken,
-            'fields' => 'id,display_phone_number,verified_name,quality_rating'
-        ]);
+        $phoneNumberId = $request->input('phone_number_id');
+        $wabaId = $request->input('waba_id');
+        $businessId = $request->input('business_account_id');
+        $name = $request->input('name');
+        $phoneNumber = $request->input('phone_number');
 
-        if (!$phoneResponse->successful()) {
-            Log::error('Phone number fetch error', ['response' => $phoneResponse->json()]);
+        if (!$phoneNumberId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener información del número de teléfono'
+                'message' => 'No se proporcionó el ID del número de teléfono'
             ], 400);
         }
 
-        $phone = $phoneResponse->json();
+        return $this->createOrUpdateWabaAccount(
+            $phoneNumberId,
+            $wabaId,
+            $businessId,
+            $name,
+            $phoneNumber,
+            'unknown',
+            $accessToken,
+            $userID
+        );
+    }
 
+    /**
+     * Create or update a WABA account
+     */
+    private function createOrUpdateWabaAccount($phoneNumberId, $wabaId, $businessId, $name, $phoneNumber, $qualityRating, $accessToken, $userID)
+    {
         // Check if already exists
         $existingWaba = WabaAccount::where('phone_number_id', $phoneNumberId)
             ->where('tenant_id', auth()->user()->tenant_id)
@@ -218,6 +222,12 @@ class WabaAccountController extends Controller
 
         if ($existingWaba) {
             $existingWaba->update(['access_token' => $accessToken]);
+
+            Log::info('WABA Account token updated', [
+                'waba_account_id' => $existingWaba->id,
+                'phone_number_id' => $phoneNumberId
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Cuenta ya existente, token actualizado',
@@ -225,28 +235,28 @@ class WabaAccountController extends Controller
             ]);
         }
 
-        // Create new WABA
+        // Create new WABA account
         $wabaAccount = WabaAccount::create([
             'tenant_id' => auth()->user()->tenant_id,
-            'name' => $phone['verified_name'] ?? 'WhatsApp Business',
-            'phone_number' => $phone['display_phone_number'] ?? '',
+            'name' => $name ?: 'WhatsApp Business',
+            'phone_number' => $phoneNumber ?: '',
             'phone_number_id' => $phoneNumberId,
-            'business_account_id' => '',
-            'waba_id' => '',
+            'business_account_id' => $businessId ?: '',
+            'waba_id' => $wabaId ?: '',
             'access_token' => $accessToken,
             'status' => 'active',
-            'quality_rating' => strtolower($phone['quality_rating'] ?? 'unknown'),
+            'quality_rating' => strtolower($qualityRating ?: 'unknown'),
             'settings' => [
                 'facebook_user_id' => $userID,
-                'verified_name' => $phone['verified_name'] ?? null,
-                'connected_via' => 'facebook_embedded_signup_direct',
+                'connected_via' => 'facebook_login',
                 'connected_at' => now()->toIso8601String()
             ]
         ]);
 
-        Log::info('WABA Account created via direct phone number', [
+        Log::info('WABA Account created via Facebook Login', [
             'waba_account_id' => $wabaAccount->id,
-            'phone_number_id' => $phoneNumberId
+            'tenant_id' => auth()->user()->tenant_id,
+            'phone_number' => $phoneNumber
         ]);
 
         return response()->json([

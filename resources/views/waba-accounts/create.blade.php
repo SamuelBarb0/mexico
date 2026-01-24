@@ -155,7 +155,6 @@
 <script>
     // Facebook App Configuration
     const FACEBOOK_APP_ID = '{{ config("services.facebook.app_id") }}';
-    const FACEBOOK_CONFIG_ID = '{{ config("services.facebook.config_id") }}';
     const FACEBOOK_API_VERSION = '{{ config("services.facebook.api_version", "v21.0") }}';
 
     // Load Facebook SDK
@@ -167,8 +166,8 @@
             version: FACEBOOK_API_VERSION
         });
 
-        // Launch Facebook Embedded Signup
-        launchFacebookSignup();
+        // Show login button
+        showFacebookLoginButton();
     };
 
     // Load Facebook SDK asynchronously
@@ -181,23 +180,22 @@
         fjs.parentNode.insertBefore(js, fjs);
     }(document, 'script', 'facebook-jssdk'));
 
-    function launchFacebookSignup() {
+    function showFacebookLoginButton() {
         if (!FACEBOOK_APP_ID || FACEBOOK_APP_ID === '') {
             console.error('Facebook App ID no configurado');
             showManualConnection();
             return;
         }
 
-        // Create Facebook Login Button
         const container = document.getElementById('fb-embedded-signup-container');
         container.innerHTML = `
-            <button onclick="launchWhatsAppSignup()" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all cursor-pointer">
+            <button onclick="loginWithFacebook()" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all cursor-pointer">
                 <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
                 Conectar con Facebook Business
             </button>
-            <p class="text-sm text-gray-500 mt-3 text-center sm:text-left">Serás redirigido a Facebook para completar la configuración</p>
+            <p class="text-sm text-gray-500 mt-3 text-center sm:text-left">Inicia sesión con Facebook para importar tus cuentas de WhatsApp Business</p>
         `;
 
         document.getElementById('loading-state').classList.add('hidden');
@@ -208,32 +206,13 @@
         }, 3000);
     }
 
-    function launchWhatsAppSignup() {
+    function loginWithFacebook() {
         // Show loading
         document.getElementById('loading-state').classList.remove('hidden');
+        document.getElementById('fb-embedded-signup-container').classList.add('hidden');
 
-        // Callback for Embedded Signup
-        const sessionInfoListener = (event) => {
-            if (event.origin !== "https://www.facebook.com") return;
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'WA_EMBEDDED_SIGNUP') {
-                    // data will have: phone_number_id, waba_id
-                    console.log('Embedded Signup Data:', data);
-
-                    if (data.data && data.data.phone_number_id) {
-                        sendToBackend({
-                            phone_number_id: data.data.phone_number_id,
-                            waba_id: data.data.waba_id || ''
-                        });
-                    }
-                }
-            } catch (e) {
-                // Not JSON, ignore
-            }
-        };
-        window.addEventListener('message', sessionInfoListener);
-
+        // Standard Facebook Login (NOT Embedded Signup)
+        // This works without being a BSP/TP
         FB.login(function(response) {
             console.log('FB.login response:', response);
 
@@ -241,75 +220,229 @@
                 const accessToken = response.authResponse.accessToken;
                 const userID = response.authResponse.userID;
 
-                // Get signed request (contains phone_number_id for embedded signup)
-                const signedRequest = response.authResponse.signedRequest;
-
-                // Extract data from response
-                let phoneNumberId = null;
-                let wabaId = null;
-
-                // Check for embedded signup specific response fields
-                if (response.authResponse.phone_number_id) {
-                    phoneNumberId = response.authResponse.phone_number_id;
-                }
-                if (response.authResponse.waba_id) {
-                    wabaId = response.authResponse.waba_id;
-                }
-
-                sendToBackend({
-                    access_token: accessToken,
-                    user_id: userID,
-                    phone_number_id: phoneNumberId,
-                    waba_id: wabaId,
-                    signed_request: signedRequest
-                });
+                // Send to backend to fetch WABA accounts
+                fetchWabaAccounts(accessToken, userID);
             } else {
                 document.getElementById('loading-state').classList.add('hidden');
-                console.log('User cancelled login or did not fully authorize.');
+                document.getElementById('fb-embedded-signup-container').classList.remove('hidden');
+                showError('Inicio de sesión cancelado o no autorizado.');
             }
         }, {
-            config_id: FACEBOOK_CONFIG_ID || undefined,
-            response_type: 'code',
-            override_default_response_type: true,
+            // Standard OAuth scopes for WhatsApp Business Management
             scope: 'business_management,whatsapp_business_management,whatsapp_business_messaging',
-            extras: {
-                feature: 'whatsapp_embedded_signup',
-                sessionInfoVersion: 2,
-                setup: {
-                    // Optional: Pre-fill business info
-                }
-            }
+            return_scopes: true
         });
     }
 
-    function sendToBackend(data) {
+    function fetchWabaAccounts(accessToken, userID) {
+        // First, try to get WABA accounts from the backend
         fetch('{{ route("waba-accounts.facebook.callback") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify({
+                access_token: accessToken,
+                user_id: userID
+            })
         })
         .then(response => response.json())
         .then(result => {
             console.log('Backend response:', result);
+
             if (result.success) {
-                // Show success message
-                alert('¡Cuenta conectada exitosamente!');
-                window.location.href = '{{ route("waba-accounts.index") }}';
+                showSuccess(result.message);
+                setTimeout(() => {
+                    window.location.href = '{{ route("waba-accounts.index") }}';
+                }, 1500);
+            } else if (result.waba_accounts && result.waba_accounts.length > 0) {
+                // Show account selector
+                showAccountSelector(result.waba_accounts, accessToken, userID);
             } else {
-                alert('Error: ' + result.message);
-                document.getElementById('loading-state').classList.add('hidden');
-                document.getElementById('manual-connection').classList.remove('hidden');
+                // No accounts found - show options
+                showNoAccountsFound(accessToken, userID, result.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error al conectar con Facebook. Por favor intenta la conexión manual.');
+            showError('Error al conectar con Facebook. Por favor intenta la conexión manual.');
             document.getElementById('loading-state').classList.add('hidden');
-            document.getElementById('manual-connection').classList.remove('hidden');
+            document.getElementById('fb-embedded-signup-container').classList.remove('hidden');
         });
+    }
+
+    function showAccountSelector(accounts, accessToken, userID) {
+        document.getElementById('loading-state').classList.add('hidden');
+
+        const container = document.getElementById('fb-embedded-signup-container');
+        container.classList.remove('hidden');
+
+        let accountsHtml = accounts.map(acc => `
+            <div class="border border-gray-200 rounded-lg p-4 hover:border-green-500 hover:bg-green-50 cursor-pointer transition-all account-option"
+                 data-phone-id="${acc.phone_number_id}"
+                 data-waba-id="${acc.waba_id}"
+                 data-business-id="${acc.business_id}"
+                 data-name="${acc.name}"
+                 data-phone="${acc.phone_number}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-bold text-gray-900">${acc.name}</h4>
+                        <p class="text-sm text-gray-600">${acc.phone_number}</p>
+                        ${acc.quality_rating ? `<span class="inline-block mt-1 px-2 py-0.5 text-xs rounded-full ${acc.quality_rating === 'GREEN' ? 'bg-green-100 text-green-800' : acc.quality_rating === 'YELLOW' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">${acc.quality_rating}</span>` : ''}
+                    </div>
+                    <svg class="w-6 h-6 text-gray-400 check-icon hidden" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = `
+            <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <h3 class="font-bold text-lg text-gray-900 mb-4">Selecciona la cuenta a conectar</h3>
+                <div class="space-y-3 max-h-64 overflow-y-auto mb-4">
+                    ${accountsHtml}
+                </div>
+                <button id="connect-selected-btn" onclick="connectSelectedAccount('${accessToken}', '${userID}')"
+                        class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" disabled>
+                    Conectar cuenta seleccionada
+                </button>
+            </div>
+        `;
+
+        // Add click handlers for account selection
+        document.querySelectorAll('.account-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.account-option').forEach(opt => {
+                    opt.classList.remove('border-green-500', 'bg-green-50');
+                    opt.querySelector('.check-icon').classList.add('hidden');
+                });
+                this.classList.add('border-green-500', 'bg-green-50');
+                this.querySelector('.check-icon').classList.remove('hidden');
+                document.getElementById('connect-selected-btn').disabled = false;
+            });
+        });
+    }
+
+    function connectSelectedAccount(accessToken, userID) {
+        const selected = document.querySelector('.account-option.border-green-500');
+        if (!selected) return;
+
+        document.getElementById('loading-state').classList.remove('hidden');
+        document.getElementById('fb-embedded-signup-container').classList.add('hidden');
+
+        fetch('{{ route("waba-accounts.facebook.callback") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                access_token: accessToken,
+                user_id: userID,
+                phone_number_id: selected.dataset.phoneId,
+                waba_id: selected.dataset.wabaId,
+                business_account_id: selected.dataset.businessId,
+                name: selected.dataset.name,
+                phone_number: selected.dataset.phone,
+                connect_specific: true
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showSuccess(result.message);
+                setTimeout(() => {
+                    window.location.href = '{{ route("waba-accounts.index") }}';
+                }, 1500);
+            } else {
+                showError(result.message);
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('fb-embedded-signup-container').classList.remove('hidden');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Error al conectar la cuenta.');
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('fb-embedded-signup-container').classList.remove('hidden');
+        });
+    }
+
+    function showNoAccountsFound(accessToken, userID, message) {
+        document.getElementById('loading-state').classList.add('hidden');
+
+        const container = document.getElementById('fb-embedded-signup-container');
+        container.classList.remove('hidden');
+        container.innerHTML = `
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+                <svg class="w-16 h-16 text-amber-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <h3 class="text-lg font-bold text-amber-900 mb-2">No se encontraron cuentas de WhatsApp Business</h3>
+                <p class="text-amber-800 mb-4">${message || 'No encontramos cuentas de WhatsApp Business asociadas a tu cuenta de Facebook.'}</p>
+                <div class="space-y-3">
+                    <p class="text-sm text-gray-600">Asegúrate de tener:</p>
+                    <ul class="text-sm text-gray-600 text-left max-w-md mx-auto space-y-1">
+                        <li class="flex items-start">
+                            <span class="text-amber-500 mr-2">1.</span>
+                            Una cuenta de WhatsApp Business creada en Meta Business Suite
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-amber-500 mr-2">2.</span>
+                            Un número de teléfono verificado y configurado
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-amber-500 mr-2">3.</span>
+                            Permisos de administrador en el Business Manager
+                        </li>
+                    </ul>
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center mt-4">
+                        <a href="https://business.facebook.com/latest/whatsapp_manager" target="_blank"
+                           class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition cursor-pointer">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                            Ir a WhatsApp Manager
+                        </a>
+                        <a href="{{ route('waba-accounts.create-manual') }}"
+                           class="inline-flex items-center justify-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition cursor-pointer">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Conexión Manual
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function showSuccess(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'fixed top-4 right-4 z-50 p-4 bg-green-100 border border-green-400 text-green-800 rounded-lg shadow-lg flex items-center';
+        alertDiv.innerHTML = `
+            <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <span class="font-semibold">${message}</span>
+        `;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    function showError(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'fixed top-4 right-4 z-50 p-4 bg-red-100 border border-red-400 text-red-800 rounded-lg shadow-lg flex items-center';
+        alertDiv.innerHTML = `
+            <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <span class="font-semibold">${message}</span>
+        `;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 5000);
     }
 
     function showManualConnection() {
