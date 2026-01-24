@@ -574,8 +574,89 @@ class WabaAccountController extends Controller
             return back()->with('error', 'No hay un META_ACCESS_TOKEN configurado en el archivo .env');
         }
 
+        // First verify that the global token has access to this phone_number_id
+        $apiVersion = config('services.meta.api_version', 'v21.0');
+        $response = Http::withToken($globalToken)
+            ->get("https://graph.facebook.com/{$apiVersion}/{$wabaAccount->phone_number_id}", [
+                'fields' => 'id,display_phone_number,verified_name'
+            ]);
+
+        if (!$response->successful()) {
+            $error = $response->json();
+            $errorCode = $error['error']['code'] ?? 'unknown';
+            $errorMsg = $error['error']['message'] ?? 'Error desconocido';
+
+            Log::warning('Global token does not have access to this phone_number_id', [
+                'phone_number_id' => $wabaAccount->phone_number_id,
+                'error_code' => $errorCode,
+                'error_message' => $errorMsg
+            ]);
+
+            return back()->with('error', "El token global no tiene acceso a este número (ID: {$wabaAccount->phone_number_id}). El System User necesita tener asignado este WhatsApp Business Account en Meta Business Suite. Error: {$errorMsg}");
+        }
+
         $wabaAccount->update(['access_token' => $globalToken]);
 
-        return back()->with('success', 'Token actualizado con el META_ACCESS_TOKEN global. Intenta verificar la cuenta nuevamente.');
+        return back()->with('success', 'Token actualizado con el META_ACCESS_TOKEN global. La cuenta está verificada y lista para enviar mensajes.');
+    }
+
+    /**
+     * Debug: List all WABA accounts accessible by the global token
+     * This helps identify which accounts the System User has access to
+     */
+    public function debugGlobalToken()
+    {
+        $globalToken = config('services.meta.access_token');
+
+        if (empty($globalToken)) {
+            return response()->json(['error' => 'No META_ACCESS_TOKEN configured'], 400);
+        }
+
+        $apiVersion = config('services.meta.api_version', 'v21.0');
+        $results = [
+            'token_prefix' => substr($globalToken, 0, 20) . '...',
+            'businesses' => [],
+            'waba_accounts' => [],
+            'phone_numbers' => []
+        ];
+
+        // Get businesses
+        $bizResponse = Http::withToken($globalToken)
+            ->get("https://graph.facebook.com/{$apiVersion}/me/businesses", [
+                'fields' => 'id,name,owned_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}}'
+            ]);
+
+        if ($bizResponse->successful()) {
+            $businesses = $bizResponse->json('data', []);
+            foreach ($businesses as $biz) {
+                $results['businesses'][] = [
+                    'id' => $biz['id'],
+                    'name' => $biz['name']
+                ];
+
+                $wabas = $biz['owned_whatsapp_business_accounts']['data'] ?? [];
+                foreach ($wabas as $waba) {
+                    $results['waba_accounts'][] = [
+                        'id' => $waba['id'],
+                        'name' => $waba['name'] ?? 'N/A',
+                        'business_id' => $biz['id']
+                    ];
+
+                    $phones = $waba['phone_numbers']['data'] ?? [];
+                    foreach ($phones as $phone) {
+                        $results['phone_numbers'][] = [
+                            'phone_number_id' => $phone['id'],
+                            'display_phone_number' => $phone['display_phone_number'] ?? 'N/A',
+                            'verified_name' => $phone['verified_name'] ?? 'N/A',
+                            'waba_id' => $waba['id']
+                        ];
+                    }
+                }
+            }
+        } else {
+            $results['businesses_error'] = $bizResponse->json();
+        }
+
+        return response()->json($results, 200, [], JSON_PRETTY_PRINT);
     }
 }
