@@ -96,6 +96,8 @@ Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
     Route::get('/waba-accounts/create-manual', [WabaAccountController::class, 'createManual'])->name('waba-accounts.create-manual');
     Route::get('/waba-accounts/debug-global-token', [WabaAccountController::class, 'debugGlobalToken'])->name('waba-accounts.debug-global-token');
     Route::get('/waba-accounts/lookup-phone-numbers', [WabaAccountController::class, 'lookupPhoneNumbers'])->name('waba-accounts.lookup-phone-numbers');
+    Route::get('/waba-accounts/available', [WabaAccountController::class, 'availableAccounts'])->name('waba-accounts.available');
+    Route::post('/waba-accounts/add-from-available', [WabaAccountController::class, 'addFromAvailable'])->name('waba-accounts.add-from-available');
     Route::post('/waba-accounts/facebook/callback', [WabaAccountController::class, 'facebookCallback'])->name('waba-accounts.facebook.callback');
     Route::post('/waba-accounts', [WabaAccountController::class, 'store'])->name('waba-accounts.store')->middleware('subscription.limits:waba_accounts');
     Route::get('/waba-accounts/{waba_account}', [WabaAccountController::class, 'show'])->name('waba-accounts.show');

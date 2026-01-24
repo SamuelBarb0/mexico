@@ -33,7 +33,6 @@ class WabaAccountController extends Controller
         try {
             $accessToken = $request->input('access_token');
             $userID = $request->input('user_id');
-            $code = $request->input('code'); // Embedded Signup code
 
             if (!$accessToken) {
                 return response()->json([
@@ -45,18 +44,7 @@ class WabaAccountController extends Controller
             $apiVersion = config('services.facebook.api_version', 'v21.0');
             $graphUrl = "https://graph.facebook.com/{$apiVersion}";
 
-            Log::info('Facebook callback started', [
-                'user_id' => $userID,
-                'has_code' => !empty($code)
-            ]);
-
-            // If we have a code from Embedded Signup, exchange it for session info
-            if (!empty($code)) {
-                $embeddedResult = $this->handleEmbeddedSignupCode($code, $graphUrl);
-                if ($embeddedResult) {
-                    return $embeddedResult;
-                }
-            }
+            Log::info('Facebook callback started', ['user_id' => $userID]);
 
             // If connecting a specific account (from selector)
             if ($request->input('connect_specific')) {
@@ -121,86 +109,6 @@ class WabaAccountController extends Controller
                 'success' => false,
                 'message' => 'Error al procesar la conexión: ' . $e->getMessage()
             ], 500);
-        }
-    }
-
-    /**
-     * Handle WhatsApp Embedded Signup code exchange
-     * This extracts WABA info from the session created during Embedded Signup
-     */
-    private function handleEmbeddedSignupCode($code, $graphUrl)
-    {
-        try {
-            $appId = config('services.facebook.app_id');
-            $appSecret = config('services.facebook.app_secret');
-
-            if (empty($appSecret)) {
-                Log::warning('FACEBOOK_APP_SECRET not configured, skipping code exchange');
-                return null;
-            }
-
-            // Exchange code for access token
-            $tokenResponse = Http::get("{$graphUrl}/oauth/access_token", [
-                'client_id' => $appId,
-                'client_secret' => $appSecret,
-                'code' => $code
-            ]);
-
-            Log::info('Embedded Signup token exchange', ['response' => $tokenResponse->json()]);
-
-            if (!$tokenResponse->successful()) {
-                Log::error('Failed to exchange Embedded Signup code', ['response' => $tokenResponse->json()]);
-                return null;
-            }
-
-            $tokenData = $tokenResponse->json();
-            $accessToken = $tokenData['access_token'] ?? null;
-
-            if (!$accessToken) {
-                return null;
-            }
-
-            // Get debug info about the token to find the WABA
-            $debugResponse = Http::get("{$graphUrl}/debug_token", [
-                'input_token' => $accessToken,
-                'access_token' => "{$appId}|{$appSecret}"
-            ]);
-
-            Log::info('Embedded Signup debug token', ['response' => $debugResponse->json()]);
-
-            // The Embedded Signup returns a user token, use it to get WABA info
-            // Try to get the shared WABA from the response
-            $wabaAccounts = $this->fetchUserWabaAccounts($accessToken, $graphUrl);
-
-            if (!empty($wabaAccounts)) {
-                // Get only non-connected accounts
-                $newAccounts = array_filter($wabaAccounts, fn($acc) => !$acc['already_connected']);
-
-                if (count($newAccounts) === 1) {
-                    $account = array_values($newAccounts)[0];
-
-                    // Use the global System User token for this account
-                    return $this->createOrUpdateWabaAccount(
-                        $account['phone_number_id'],
-                        $account['waba_id'],
-                        $account['business_id'],
-                        $account['name'],
-                        $account['phone_number'],
-                        $account['quality_rating'] ?? 'unknown',
-                        $accessToken,
-                        null
-                    );
-                }
-            }
-
-            // If we couldn't extract directly, return null to continue with standard flow
-            return null;
-
-        } catch (\Exception $e) {
-            Log::error('Error handling Embedded Signup code', [
-                'error' => $e->getMessage()
-            ]);
-            return null;
         }
     }
 
@@ -795,5 +703,133 @@ class WabaAccountController extends Controller
         }
 
         return response()->json($results, 200, [], JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * Show available WABA accounts from the global System User token
+     * These are accounts that have been shared with your Business Manager
+     */
+    public function availableAccounts()
+    {
+        $globalToken = config('services.meta.access_token');
+
+        if (empty($globalToken)) {
+            return view('waba-accounts.available', [
+                'error' => 'No hay un META_ACCESS_TOKEN configurado. Configura tu System User Token en el archivo .env',
+                'accounts' => []
+            ]);
+        }
+
+        $apiVersion = config('services.meta.api_version', 'v21.0');
+        $accounts = [];
+
+        // Get businesses and their WABA accounts
+        $bizResponse = Http::withToken($globalToken)
+            ->get("https://graph.facebook.com/{$apiVersion}/me/businesses", [
+                'fields' => 'id,name,owned_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name,quality_rating}}'
+            ]);
+
+        if ($bizResponse->successful()) {
+            $businesses = $bizResponse->json('data', []);
+
+            foreach ($businesses as $biz) {
+                $wabas = $biz['owned_whatsapp_business_accounts']['data'] ?? [];
+
+                foreach ($wabas as $waba) {
+                    $phones = $waba['phone_numbers']['data'] ?? [];
+
+                    foreach ($phones as $phone) {
+                        // Check if already connected to this tenant
+                        $existing = WabaAccount::where('phone_number_id', $phone['id'])
+                            ->where('tenant_id', auth()->user()->tenant_id)
+                            ->first();
+
+                        $accounts[] = [
+                            'phone_number_id' => $phone['id'],
+                            'waba_id' => $waba['id'],
+                            'business_id' => $biz['id'],
+                            'business_name' => $biz['name'],
+                            'waba_name' => $waba['name'] ?? 'WhatsApp Business',
+                            'phone_number' => $phone['display_phone_number'] ?? 'N/A',
+                            'verified_name' => $phone['verified_name'] ?? 'N/A',
+                            'quality_rating' => $phone['quality_rating'] ?? 'UNKNOWN',
+                            'already_connected' => $existing !== null,
+                            'existing_id' => $existing?->id
+                        ];
+                    }
+                }
+            }
+        } else {
+            $error = $bizResponse->json();
+            return view('waba-accounts.available', [
+                'error' => 'Error al obtener cuentas: ' . ($error['error']['message'] ?? 'Error desconocido'),
+                'accounts' => []
+            ]);
+        }
+
+        return view('waba-accounts.available', [
+            'error' => null,
+            'accounts' => $accounts
+        ]);
+    }
+
+    /**
+     * Add a WABA account from the available accounts list
+     * Uses the global System User token
+     */
+    public function addFromAvailable(Request $request)
+    {
+        $validated = $request->validate([
+            'phone_number_id' => 'required|string',
+            'waba_id' => 'required|string',
+            'business_id' => 'required|string',
+            'waba_name' => 'required|string',
+            'phone_number' => 'required|string',
+            'verified_name' => 'nullable|string',
+            'quality_rating' => 'nullable|string',
+        ]);
+
+        $globalToken = config('services.meta.access_token');
+
+        if (empty($globalToken)) {
+            return back()->with('error', 'No hay un META_ACCESS_TOKEN configurado');
+        }
+
+        // Check if already exists
+        $existing = WabaAccount::where('phone_number_id', $validated['phone_number_id'])
+            ->where('tenant_id', auth()->user()->tenant_id)
+            ->first();
+
+        if ($existing) {
+            return back()->with('warning', 'Esta cuenta ya está conectada');
+        }
+
+        // Create the WABA account with the global token
+        $wabaAccount = WabaAccount::create([
+            'tenant_id' => auth()->user()->tenant_id,
+            'name' => $validated['waba_name'],
+            'phone_number' => $validated['phone_number'],
+            'phone_number_id' => $validated['phone_number_id'],
+            'business_account_id' => $validated['business_id'],
+            'waba_id' => $validated['waba_id'],
+            'access_token' => $globalToken,
+            'status' => 'active',
+            'quality_rating' => strtolower($validated['quality_rating'] ?? 'unknown'),
+            'settings' => [
+                'verified_name' => $validated['verified_name'],
+                'connected_via' => 'available_accounts',
+                'token_source' => 'system_user',
+                'connected_at' => now()->toIso8601String()
+            ]
+        ]);
+
+        Log::info('WABA Account added from available accounts', [
+            'waba_account_id' => $wabaAccount->id,
+            'tenant_id' => auth()->user()->tenant_id,
+            'phone_number' => $validated['phone_number']
+        ]);
+
+        return redirect()->route('waba-accounts.index')
+            ->with('success', 'Cuenta WABA conectada exitosamente');
     }
 }
