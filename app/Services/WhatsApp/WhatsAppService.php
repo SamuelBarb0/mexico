@@ -9,7 +9,12 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsAppService
 {
-    protected string $apiVersion = 'v18.0';
+    protected string $apiVersion;
+
+    public function __construct()
+    {
+        $this->apiVersion = config('services.meta.api_version', 'v21.0');
+    }
 
     /**
      * Send a template message via WhatsApp Business API

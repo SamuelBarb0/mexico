@@ -364,4 +364,210 @@ class WabaAccountController extends Controller
         return redirect()->route('waba-accounts.index')
             ->with('success', 'Cuenta WABA eliminada exitosamente');
     }
+
+    /**
+     * Verify the WABA account status with Meta API
+     */
+    public function verify(WabaAccount $wabaAccount)
+    {
+        $apiVersion = config('services.meta.api_version', 'v21.0');
+        $accessToken = $wabaAccount->access_token;
+        $phoneNumberId = $wabaAccount->phone_number_id;
+
+        $results = [
+            'phone_number_id' => $phoneNumberId,
+            'checks' => []
+        ];
+
+        // Check 1: Verify phone number exists and is registered
+        $phoneResponse = Http::withToken($accessToken)
+            ->get("https://graph.facebook.com/{$apiVersion}/{$phoneNumberId}", [
+                'fields' => 'id,display_phone_number,verified_name,quality_rating,platform_type,is_official_business_account,account_mode,status'
+            ]);
+
+        Log::info('Phone verification response', [
+            'phone_number_id' => $phoneNumberId,
+            'status' => $phoneResponse->status(),
+            'response' => $phoneResponse->json()
+        ]);
+
+        if ($phoneResponse->successful()) {
+            $phoneData = $phoneResponse->json();
+            $results['checks']['phone_number'] = [
+                'status' => 'success',
+                'data' => $phoneData
+            ];
+
+            // Update the account with fresh data
+            $wabaAccount->update([
+                'phone_number' => $phoneData['display_phone_number'] ?? $wabaAccount->phone_number,
+                'quality_rating' => strtolower($phoneData['quality_rating'] ?? 'unknown'),
+                'last_sync_at' => now()
+            ]);
+        } else {
+            $error = $phoneResponse->json();
+            $results['checks']['phone_number'] = [
+                'status' => 'error',
+                'error_code' => $error['error']['code'] ?? null,
+                'error_message' => $error['error']['message'] ?? 'Unknown error'
+            ];
+        }
+
+        // Check 2: Verify we can access the WABA
+        if ($wabaAccount->waba_id) {
+            $wabaResponse = Http::withToken($accessToken)
+                ->get("https://graph.facebook.com/{$apiVersion}/{$wabaAccount->waba_id}", [
+                    'fields' => 'id,name,currency,timezone_id,message_template_namespace'
+                ]);
+
+            Log::info('WABA verification response', [
+                'waba_id' => $wabaAccount->waba_id,
+                'status' => $wabaResponse->status(),
+                'response' => $wabaResponse->json()
+            ]);
+
+            if ($wabaResponse->successful()) {
+                $results['checks']['waba'] = [
+                    'status' => 'success',
+                    'data' => $wabaResponse->json()
+                ];
+            } else {
+                $error = $wabaResponse->json();
+                $results['checks']['waba'] = [
+                    'status' => 'error',
+                    'error_code' => $error['error']['code'] ?? null,
+                    'error_message' => $error['error']['message'] ?? 'Unknown error'
+                ];
+            }
+        }
+
+        // Check 3: Test sending capability (dry run)
+        $testResponse = Http::withToken($accessToken)
+            ->get("https://graph.facebook.com/{$apiVersion}/{$phoneNumberId}/whatsapp_business_profile", [
+                'fields' => 'about,address,description,email,profile_picture_url,websites,vertical'
+            ]);
+
+        if ($testResponse->successful()) {
+            $results['checks']['messaging_capability'] = [
+                'status' => 'success',
+                'message' => 'Account can access WhatsApp Business API'
+            ];
+        } else {
+            $error = $testResponse->json();
+            $results['checks']['messaging_capability'] = [
+                'status' => 'error',
+                'error_code' => $error['error']['code'] ?? null,
+                'error_message' => $error['error']['message'] ?? 'Unknown error'
+            ];
+        }
+
+        // Determine overall status
+        $hasErrors = collect($results['checks'])->contains(function ($check) {
+            return $check['status'] === 'error';
+        });
+
+        if ($hasErrors) {
+            // Check for specific error codes
+            $phoneCheck = $results['checks']['phone_number'] ?? null;
+            if ($phoneCheck && isset($phoneCheck['error_code'])) {
+                $errorCode = $phoneCheck['error_code'];
+
+                // Error 100 = Invalid parameter (phone not registered)
+                // Error 190 = Invalid access token
+                // Error 10 = Permission denied
+                if ($errorCode == 190) {
+                    return back()->with('error', 'El token de acceso ha expirado o es inválido. Por favor vuelve a conectar la cuenta con Facebook.');
+                } elseif ($errorCode == 100) {
+                    return back()->with('error', 'El número de teléfono no está registrado correctamente en WhatsApp Business. Verifica la configuración en Meta Business Suite.');
+                } elseif ($errorCode == 10) {
+                    return back()->with('error', 'No tienes permisos suficientes. El token necesita los permisos whatsapp_business_management y whatsapp_business_messaging.');
+                }
+            }
+
+            return back()->with('warning', 'Se encontraron algunos problemas con la cuenta. Revisa los logs para más detalles.');
+        }
+
+        return back()->with('success', 'La cuenta está correctamente configurada y lista para enviar mensajes.');
+    }
+
+    /**
+     * Register the phone number with WhatsApp Business API
+     * This is needed if the account shows "Account not Registered" error
+     */
+    public function register(WabaAccount $wabaAccount)
+    {
+        $apiVersion = config('services.meta.api_version', 'v21.0');
+        $phoneNumberId = $wabaAccount->phone_number_id;
+
+        // Try with the account's token first, then fall back to the global META_ACCESS_TOKEN
+        $tokens = [
+            $wabaAccount->access_token,
+            config('services.meta.access_token')
+        ];
+
+        $lastError = null;
+
+        foreach ($tokens as $accessToken) {
+            if (empty($accessToken)) continue;
+
+            // Try to register the phone number
+            $response = Http::withToken($accessToken)
+                ->post("https://graph.facebook.com/{$apiVersion}/{$phoneNumberId}/register", [
+                    'messaging_product' => 'whatsapp',
+                    'pin' => '123456' // Default 6-digit PIN
+                ]);
+
+            Log::info('Phone registration attempt', [
+                'phone_number_id' => $phoneNumberId,
+                'token_prefix' => substr($accessToken, 0, 20) . '...',
+                'status' => $response->status(),
+                'response' => $response->json()
+            ]);
+
+            if ($response->successful()) {
+                // If we used the global token, update the account with it
+                if ($accessToken === config('services.meta.access_token')) {
+                    $wabaAccount->update([
+                        'access_token' => $accessToken,
+                        'status' => 'active',
+                        'verified_at' => now()
+                    ]);
+                } else {
+                    $wabaAccount->update([
+                        'status' => 'active',
+                        'verified_at' => now()
+                    ]);
+                }
+
+                return back()->with('success', 'Número registrado exitosamente en WhatsApp Business API.');
+            }
+
+            $lastError = $response->json();
+        }
+
+        $errorMessage = $lastError['error']['message'] ?? 'Error desconocido';
+
+        // Provide helpful error message
+        if (str_contains($errorMessage, 'permission') || str_contains($errorMessage, 'access')) {
+            return back()->with('error', "Error: {$errorMessage}. El token no tiene permisos. Necesitas un System User Token de Meta Business Suite.");
+        }
+
+        return back()->with('error', "Error al registrar el número: {$errorMessage}");
+    }
+
+    /**
+     * Update the access token with the global META_ACCESS_TOKEN from .env
+     */
+    public function useGlobalToken(WabaAccount $wabaAccount)
+    {
+        $globalToken = config('services.meta.access_token');
+
+        if (empty($globalToken)) {
+            return back()->with('error', 'No hay un META_ACCESS_TOKEN configurado en el archivo .env');
+        }
+
+        $wabaAccount->update(['access_token' => $globalToken]);
+
+        return back()->with('success', 'Token actualizado con el META_ACCESS_TOKEN global. Intenta verificar la cuenta nuevamente.');
+    }
 }

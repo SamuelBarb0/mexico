@@ -100,6 +100,9 @@ Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
     Route::get('/waba-accounts/{waba_account}/edit', [WabaAccountController::class, 'edit'])->name('waba-accounts.edit');
     Route::put('/waba-accounts/{waba_account}', [WabaAccountController::class, 'update'])->name('waba-accounts.update');
     Route::delete('/waba-accounts/{waba_account}', [WabaAccountController::class, 'destroy'])->name('waba-accounts.destroy');
+    Route::post('/waba-accounts/{waba_account}/verify', [WabaAccountController::class, 'verify'])->name('waba-accounts.verify');
+    Route::post('/waba-accounts/{waba_account}/register', [WabaAccountController::class, 'register'])->name('waba-accounts.register');
+    Route::post('/waba-accounts/{waba_account}/use-global-token', [WabaAccountController::class, 'useGlobalToken'])->name('waba-accounts.use-global-token');
 
     // Módulo de Plantillas de Mensajes
     Route::get('/templates/create', [MessageTemplateController::class, 'create'])->name('templates.create');

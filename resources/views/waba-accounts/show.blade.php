@@ -13,6 +13,25 @@
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-gray-800">{{ $wabaAccount->name }}</h2>
         <div class="flex space-x-3">
+            <form action="{{ route('waba-accounts.verify', $wabaAccount) }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Verificar
+                </button>
+            </form>
+            <form action="{{ route('waba-accounts.register', $wabaAccount) }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center"
+                    onclick="return confirm('¿Registrar este número en WhatsApp Business API? Esto es necesario si ves error Account not Registered.')">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                    </svg>
+                    Registrar
+                </button>
+            </form>
             <a href="{{ route('waba-accounts.edit', $wabaAccount) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                 Editar
             </a>
@@ -150,12 +169,58 @@
     @endif
 
     <div class="mt-6 pt-6 border-t border-gray-200">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-500">
             <div>
                 <span class="font-medium">Creada:</span> {{ $wabaAccount->created_at->format('d/m/Y H:i') }}
             </div>
             <div>
                 <span class="font-medium">Actualizada:</span> {{ $wabaAccount->updated_at->format('d/m/Y H:i') }}
+            </div>
+            <div>
+                <span class="font-medium">Última sincronización:</span>
+                {{ $wabaAccount->last_sync_at ? $wabaAccount->last_sync_at->format('d/m/Y H:i') : 'Nunca' }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Troubleshooting Help -->
+    <div class="mt-6 pt-6 border-t border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Solución de problemas</h3>
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <h4 class="font-semibold text-amber-900 mb-2">¿Ves el error "Account not Registered" o "Fuera de internet"?</h4>
+            <p class="text-sm text-amber-800 mb-3">El número necesita registrarse en la Cloud API de WhatsApp. Sigue estos pasos:</p>
+            <ul class="text-sm text-amber-800 space-y-2 mb-4">
+                <li class="flex items-start">
+                    <span class="mr-2">1.</span>
+                    <span>Primero intenta usar el <strong>Token Global</strong> (si está configurado en el servidor)</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="mr-2">2.</span>
+                    <span>Luego haz clic en <strong>Registrar</strong> para registrar el número en la API</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="mr-2">3.</span>
+                    <span>Si no funciona, ve a <a href="https://business.facebook.com/latest/whatsapp_manager/phone_numbers" target="_blank" class="text-blue-600 hover:underline font-medium">Meta Business Suite → WhatsApp Manager</a> y registra el número manualmente</span>
+                </li>
+            </ul>
+            <div class="flex flex-wrap gap-2">
+                <form action="{{ route('waba-accounts.use-global-token', $wabaAccount) }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center"
+                        onclick="return confirm('¿Usar el META_ACCESS_TOKEN global del servidor? Esto reemplazará el token actual.')">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                        </svg>
+                        Usar Token Global
+                    </button>
+                </form>
+                <a href="https://business.facebook.com/latest/whatsapp_manager/phone_numbers" target="_blank"
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                    Ir a WhatsApp Manager
+                </a>
             </div>
         </div>
     </div>
