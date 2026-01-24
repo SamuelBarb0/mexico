@@ -152,6 +152,44 @@ class SubscriptionPlanController extends Controller
     }
 
     /**
+     * Sincroniza todos los planes con Stripe
+     */
+    public function syncAllWithStripe()
+    {
+        Stripe::setApiKey(config('services.stripe.secret'));
+
+        $plans = SubscriptionPlan::all();
+        $synced = 0;
+        $errors = [];
+
+        foreach ($plans as $plan) {
+            // Solo sincronizar planes con precio
+            if ($plan->price_monthly <= 0 && $plan->price_yearly <= 0) {
+                continue;
+            }
+
+            try {
+                $this->syncPlanWithStripe($plan);
+                $synced++;
+            } catch (Exception $e) {
+                $errors[] = "{$plan->name}: {$e->getMessage()}";
+                Log::error('Error al sincronizar plan con Stripe', [
+                    'plan_id' => $plan->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        if (count($errors) > 0) {
+            return redirect()->route('admin.plans.index')
+                ->with('warning', "Se sincronizaron {$synced} planes. Errores: " . implode(', ', $errors));
+        }
+
+        return redirect()->route('admin.plans.index')
+            ->with('success', "Se sincronizaron {$synced} planes con Stripe exitosamente");
+    }
+
+    /**
      * Sincroniza un plan con Stripe creando Product y Prices automáticamente
      */
     protected function syncPlanWithStripe(SubscriptionPlan $plan): void

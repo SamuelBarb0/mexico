@@ -142,5 +142,6 @@ Route::middleware(['auth', 'tenant.set', 'tenant.status'])->group(function () {
         // Gestión de Planes de Suscripción
         Route::resource('plans', SubscriptionPlanController::class);
         Route::patch('plans/{plan}/toggle', [SubscriptionPlanController::class, 'toggle'])->name('plans.toggle');
+        Route::post('plans/sync-stripe', [SubscriptionPlanController::class, 'syncAllWithStripe'])->name('plans.sync-stripe');
     });
 });
