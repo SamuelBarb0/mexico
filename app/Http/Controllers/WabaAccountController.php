@@ -352,20 +352,25 @@ class WabaAccountController extends Controller
             'name' => 'required|string|max:255',
             'phone_number' => 'required|string|max:50',
             'phone_number_id' => 'required|string|max:255|unique:waba_accounts,phone_number_id,' . $wabaAccount->id,
-            'business_account_id' => 'required|string|max:255',
+            'business_account_id' => 'nullable|string|max:255',
             'waba_id' => 'required|string|max:255',
             'access_token' => 'required|string',
-            'status' => 'required|in:pending,active,inactive,suspended',
-            'quality_rating' => 'required|in:green,yellow,red,unknown',
-            'is_verified' => 'required|boolean',
+            'status' => 'nullable|in:pending,active,inactive,suspended',
+            'quality_rating' => 'nullable|in:green,yellow,red,unknown',
+            'is_verified' => 'nullable|boolean',
             'settings' => 'nullable|string',
         ]);
+
+        // Set defaults for nullable fields if not provided
+        $validated['status'] = $validated['status'] ?? $wabaAccount->status ?? 'active';
+        $validated['quality_rating'] = $validated['quality_rating'] ?? $wabaAccount->quality_rating ?? 'unknown';
+        $validated['business_account_id'] = $validated['business_account_id'] ?? $wabaAccount->business_account_id ?? $validated['waba_id'];
 
         // Process settings
         if (isset($validated['settings']) && !empty($validated['settings'])) {
             $settings = json_decode($validated['settings'], true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                return back()->withErrors(['settings' => 'El formato JSON no es válido'])->withInput();
+                return back()->with('error', 'El formato JSON no es válido')->withInput();
             }
             $validated['settings'] = $settings;
         }
