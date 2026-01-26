@@ -18,21 +18,13 @@
                 </h1>
                 <p class="text-amber-100 text-sm sm:text-base lg:text-lg">Administra tus cuentas de WhatsApp Business API</p>
             </div>
-            <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-                <a href="{{ route('waba-accounts.available') }}" class="group relative overflow-hidden bg-white/20 backdrop-blur text-white border border-white/30 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-300 flex items-center cursor-pointer justify-center">
-                    <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                    </svg>
-                    <span class="truncate">Cuentas Disponibles</span>
-                </a>
-                <a href="{{ route('waba-accounts.create') }}" class="group relative overflow-hidden bg-white text-amber-600 px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 lg:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center cursor-pointer justify-center">
-                    <span class="absolute inset-0 bg-gradient-to-r from-amber-400 to-orange-500 opacity-0 group-hover:opacity-20 transition-opacity"></span>
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    <span class="relative z-10 truncate">Nueva Cuenta WABA</span>
-                </a>
-            </div>
+            <a href="{{ route('waba-accounts.create-manual') }}" class="group relative overflow-hidden bg-white text-amber-600 px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 lg:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center cursor-pointer justify-center w-full sm:w-auto">
+                <span class="absolute inset-0 bg-gradient-to-r from-amber-400 to-orange-500 opacity-0 group-hover:opacity-20 transition-opacity"></span>
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span class="relative z-10 truncate">Conectar WhatsApp</span>
+            </a>
         </div>
     </div>
 
@@ -44,13 +36,13 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
                     </svg>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-800 mb-2">No hay cuentas WABA registradas</h3>
-                <p class="text-gray-600 mb-6">Comienza agregando tu primera cuenta de WhatsApp Business API</p>
-                <a href="{{ route('waba-accounts.create') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">No hay cuentas WhatsApp conectadas</h3>
+                <p class="text-gray-600 mb-6">Conecta tu cuenta de WhatsApp Business para empezar a enviar mensajes</p>
+                <a href="{{ route('waba-accounts.create-manual') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
-                    Crear Primera Cuenta WABA
+                    Conectar WhatsApp Business
                 </a>
             </div>
         @else

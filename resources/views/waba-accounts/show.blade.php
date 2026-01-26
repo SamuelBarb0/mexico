@@ -35,11 +35,11 @@
             <a href="{{ route('waba-accounts.edit', $wabaAccount) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                 Editar
             </a>
-            <form action="{{ route('waba-accounts.destroy', $wabaAccount) }}" method="POST" class="inline">
+            <form action="{{ route('waba-accounts.destroy', $wabaAccount) }}" method="POST" class="inline" id="delete-form">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-                    onclick="return confirm('¿Estás seguro de eliminar esta cuenta WABA?')">
+                <button type="button" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                    onclick="showDeleteModal()">
                     Eliminar
                 </button>
             </form>
@@ -172,4 +172,75 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">Eliminar cuenta WABA</h3>
+
+        @if($wabaAccount->campaigns->count() > 0 || $wabaAccount->templates->count() > 0)
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                <p class="text-amber-800 font-semibold mb-2">Esta cuenta tiene datos asociados:</p>
+                <ul class="text-sm text-amber-700 space-y-1">
+                    @if($wabaAccount->campaigns->count() > 0)
+                        <li>• {{ $wabaAccount->campaigns->count() }} campaña(s)</li>
+                    @endif
+                    @if($wabaAccount->templates->count() > 0)
+                        <li>• {{ $wabaAccount->templates->count() }} plantilla(s)</li>
+                    @endif
+                </ul>
+            </div>
+
+            <label class="flex items-center mb-4 cursor-pointer">
+                <input type="checkbox" id="force-delete" class="rounded border-gray-300 text-red-600 focus:ring-red-500 mr-2">
+                <span class="text-sm text-gray-700">Eliminar también las campañas y plantillas asociadas</span>
+            </label>
+        @else
+            <p class="text-gray-600 mb-4">¿Estás seguro de que deseas eliminar esta cuenta WABA?</p>
+        @endif
+
+        <div class="flex justify-end gap-3">
+            <button type="button" onclick="hideDeleteModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold">
+                Cancelar
+            </button>
+            <button type="button" onclick="confirmDelete()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold">
+                Eliminar
+            </button>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    function showDeleteModal() {
+        document.getElementById('delete-modal').classList.remove('hidden');
+    }
+
+    function hideDeleteModal() {
+        document.getElementById('delete-modal').classList.add('hidden');
+    }
+
+    function confirmDelete() {
+        const form = document.getElementById('delete-form');
+        const forceCheckbox = document.getElementById('force-delete');
+
+        if (forceCheckbox && forceCheckbox.checked) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'force';
+            input.value = '1';
+            form.appendChild(input);
+        }
+
+        form.submit();
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('delete-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideDeleteModal();
+        }
+    });
+</script>
+@endpush
 @endsection

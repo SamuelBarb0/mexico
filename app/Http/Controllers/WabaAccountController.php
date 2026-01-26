@@ -294,15 +294,29 @@ class WabaAccountController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone_number' => 'required|string|max:50',
-            'phone_number_id' => 'required|string|max:255|unique:waba_accounts,phone_number_id',
-            'business_account_id' => 'required|string|max:255',
+            'phone_number_id' => 'required|string|max:255',
+            'business_account_id' => 'nullable|string|max:255',
             'waba_id' => 'required|string|max:255',
             'access_token' => 'required|string',
-            'status' => 'required|in:pending,active,inactive,suspended',
-            'quality_rating' => 'required|in:green,yellow,red,unknown',
-            'is_verified' => 'required|boolean',
+            'status' => 'nullable|in:pending,active,inactive,suspended',
+            'quality_rating' => 'nullable|in:green,yellow,red,unknown',
+            'is_verified' => 'nullable|boolean',
             'settings' => 'nullable|string',
         ]);
+
+        // Set defaults
+        $validated['status'] = $validated['status'] ?? 'active';
+        $validated['quality_rating'] = $validated['quality_rating'] ?? 'unknown';
+        $validated['business_account_id'] = $validated['business_account_id'] ?? $validated['waba_id'];
+
+        // Check if phone_number_id already exists for this tenant
+        $existing = WabaAccount::where('phone_number_id', $validated['phone_number_id'])
+            ->where('tenant_id', auth()->user()->tenant_id)
+            ->first();
+
+        if ($existing) {
+            return back()->with('error', 'Ya existe una cuenta con este Phone Number ID')->withInput();
+        }
 
         // Process settings
         if (isset($validated['settings']) && !empty($validated['settings'])) {
@@ -313,6 +327,8 @@ class WabaAccountController extends Controller
             $validated['settings'] = $settings;
         }
 
+        $validated['tenant_id'] = auth()->user()->tenant_id;
+
         $wabaAccount = WabaAccount::create($validated);
 
         return redirect()->route('waba-accounts.index')
@@ -321,7 +337,7 @@ class WabaAccountController extends Controller
 
     public function show(WabaAccount $wabaAccount)
     {
-        $wabaAccount->load('campaigns');
+        $wabaAccount->load(['campaigns', 'templates']);
         return view('waba-accounts.show', compact('wabaAccount'));
     }
 
@@ -360,11 +376,27 @@ class WabaAccountController extends Controller
             ->with('success', 'Cuenta WABA actualizada exitosamente');
     }
 
-    public function destroy(WabaAccount $wabaAccount)
+    public function destroy(Request $request, WabaAccount $wabaAccount)
     {
-        // Check if there are campaigns using this WABA account
-        if ($wabaAccount->campaigns()->count() > 0) {
-            return back()->withErrors(['error' => 'No se puede eliminar esta cuenta WABA porque tiene campañas asociadas']);
+        $forceDelete = $request->input('force', false);
+
+        $campaignsCount = $wabaAccount->campaigns()->count();
+        $templatesCount = $wabaAccount->templates()->count();
+
+        // If force delete, remove associated records first
+        if ($forceDelete) {
+            $wabaAccount->campaigns()->delete();
+            $wabaAccount->templates()->delete();
+        } else {
+            // Check if there are campaigns using this WABA account
+            if ($campaignsCount > 0) {
+                return back()->with('error', "No se puede eliminar esta cuenta WABA porque tiene {$campaignsCount} campaña(s) asociada(s). Elimina primero las campañas o marca 'Forzar eliminación'.");
+            }
+
+            // Check if there are templates using this WABA account
+            if ($templatesCount > 0) {
+                return back()->with('error', "No se puede eliminar esta cuenta WABA porque tiene {$templatesCount} plantilla(s) asociada(s). Elimina primero las plantillas o marca 'Forzar eliminación'.");
+            }
         }
 
         $wabaAccount->delete();
